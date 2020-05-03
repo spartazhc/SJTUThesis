@@ -1,0 +1,135 @@
+% !TEX root = ../thesis.tex
+
+\chapter{关键技术介绍}
+
+一个直播系统的构成需要有视频的编解码技术、以及流媒体传输协议等技术支持，在基于AV1的低延迟直播系统搭建的过程中，面对着流媒体传输协议的选择，我们需要根据直播系统的业务特点与需求出发，选择最合适的直播协议来契合整个系统。
+
+\section{AV1视频编码标准}
+
+AOMedia Video 1 (AV1)是一种开放的，免版税的视频编码格式，旨在用于互联网上的视频传输，取代Google的VP9并与H.265/HEVC竞争。AV1由开放媒体联盟AOMedia开发，该联盟的成员有半导体行业公司，视频点播提供商，视频内容提供商，软件开发公司和Web浏览器供应商等。AOMedia的成员组成了完整的产业链，共同创建的AV1更是具有开放、免版税的特性，与HEVC之类的现有技术需要缴纳专利费不同，有利于其在开源项目中的使用，利于构建良好的生态系统。在功能上，AV1专为实时高质量视频分发（尤其是WebRTC）和更高的分辨率，更宽的色域，更高的帧速率，在各种带宽上对现代设备的可伸缩性设计（cite av1-tools)，而不是当前主流视频格式H.264的典型使用场景。
+
+AV1使用了许多先进的编码工具，包括更多样的分块方案，更多的帧内预测选项，从亮度预测色度，针对屏幕内容的调色盘模式、帧内块复制，更多的参考帧，更灵活的运动向量估计以及其他帧间预测工具。环路滤波和后处理使用了约束方向增强滤波器（CDEF）和帧超分辨率等工具。这些先进的编码工具使得AV1可以达到更高的编码效率。
+
+本文不涉及过多的AV1编码工具原理，但是涉及AV1码流的相关知识。AV1码流被封装成“开放比特流单元（OBU）”这种低开销的比特流格式。每个OBU由一个\texttt{obu\_header()}和相对应类型的obu载荷构成。AV1的OBU类型如表\ref{tab:obutype}所示，每个编码序列有一个\texttt{OBU\_SEQUENCE\_HEADER}包含该码流的序列编码信息；\texttt{OBU\_TEMPORAL\_DELIMITER}表示时间分割符，包含空载荷；\texttt{OBU\_FRAME\_HEADER}包含了编码的一帧的头信息；\texttt{OBU\_TILE\_GROUP}包含一个Tile内部的各个superblock分割类型、预测变换类型以及参数等解码需要的信息；\texttt{OBU\_FRAME}包含一个\texttt{OBU\_FRAME\_HEADER}和一个\texttt{OBU\_TILE\_GROUP}。在后续RTP封装的时候，由于RTP封装的payload大小限制，这些OBU会根据规则分割装入不同的RTP包。
+
+% TODO 介绍一下av1用来替代b帧效果的TD和showable方法
+
+\begin{table}[!hpt]
+    \renewcommand{\arraystretch}{0.8}
+    \caption[obu\_type]{AV1比特流标准：obu\_type}
+    \label{tab:obutype}
+    \centering
+    \begin{tabular}{cc} \toprule
+      obu\_type & Name of obu\_type\\ \midrule
+      0    & \texttt{Reserved}  \\
+      1    & \texttt{OBU\_SEQUENCE\_HEADER}     \\
+      2    & \texttt{OBU\_TEMPORAL\_DELIMITER}   \\
+      3    & \texttt{OBU\_FRAME\_HEADER}   \\
+      4    & \texttt{OBU\_TILE\_GROUP}     \\
+      5    & \texttt{OBU\_METADATA}     \\
+      6    & \texttt{OBU\_FRAME}     \\
+      7    & \texttt{OBU\_REDUNDANT\_FRAME\_HEADER}     \\
+      8    & \texttt{OBU\_TILE\_LIST}     \\
+      9-14 & \texttt{Reserved}     \\
+      15   & \texttt{OBU\_PADDING}     \\ \bottomrule
+    \end{tabular}
+  \end{table}
+
+
+\section{流媒体协议与封装协议选择}
+
+流媒体协议与封装格式的选择往往是相互关联的，一种流媒体协议可能会要求使用某种封装格式。下文会对不同流媒体协议进行对比，结合AV1相关的封装格式的情况，选择合适的流媒体协议。
+
+流媒体协议可以大致分为两类，一类是有状态流媒体协议，另一类是基于HTTP的自适应流媒体协议。二者差别比较显著，各有各的特点和优势，下文将对二者进行分析对比。
+
+% TODO 加入wowza的一张图，协议-延迟的图
+
+\subsection{有状态流媒体协议}
+
+有状态流媒体协议主要有RTMP、RTSP等，加上近年来比较热门的SRT协议。有状态流媒体协议一般延迟较低，但伸缩性较差。
+
+\paragraph{RTMP} Real Time Messaging Protocol（实时消息传输协议）是Adobe的专有协议，旨在互联网上传输音视频数据。RTMP是基于TCP的协议，可维护持久连接并允许低延迟通信。为了平稳地传递流并传输尽可能多的信息，它将流分成多个片段，并在客户端和服务器之间动态协商其大小。由于以下原因等，RTMP难以应对当今的挑战：
+
+\begin{enumerate} [label=\arabic*)]
+    \item RTMP是Adobe的专有协议，Adobe暂停了对FLV与RTMP标准的更新；
+    \item RTMP一般传输的是FLV格式，而FLV格式对编码标准有限制，只支持到H.264，不支持HEVC和AV1等较新的编码标准。
+    \item RTMP无法优雅地支持高分辨率以及VR，360视频等，因为缺乏对新的编码标准的支持，以及由于带宽限制，RTMP无法以高比特率使用；
+    \item RTMP遇到安全性，多语言支持和广告插入支持方面的问题。
+    \item CDN厂商对RTMP的支持正在减弱，转而使用HLS和MPEG-DASH
+\end{enumerate}
+
+\paragraph{RTSP} Real Time Streaming Protocol（实时流协议）由IETF标准化，在1998年以RFC2326的形式发布，RTSP2.0 在2016年以RFC7826的形式发布，以替代RTSP1.0。RTSP是一种网络控制协议，专为娱乐和通信系统的使用，以控制流媒体服务器。流数据本身的传输不是RTSP的任务，大多数RTSP服务器使用实时传输协议（RTP）和实时控制协议（RTCP）进行媒体流传递。RTSP对编码标准的支持性取决于音视频编码标准的RTP封装协议支持，而一般的音视频编码标准都有相对应的RTP封装协议支持。
+
+RTSP一般用于IP摄像头，也可以用于流媒体直播，其一大优势是延迟较小。RTSP的一大缺点是设备支持性差，在Android和iOS设备上没有开箱即用的RTSP兼容播放器，RTSP在web端的支持性也不好。
+
+\paragraph{SRT} Secure Reliable Transport（实时可靠传输协议）由Haivision 和 Wowza共同创建，并于2017开源。SRT通过动态适应传输端点之间的实时网络状况，优化了跨不可预测的网络（例如Internet）的流传输性能。这有助于最小化抖动和带宽变化的影响，而纠错机制有助于最大程度地减少数据包丢失。SRT旨在解决视频在公共互联网（网络质量不好）的分发挑战。SRT协议和编码标准无关的，其传输的格式为MPEG-TS封装，因此需要音视频编码标准能够支持MPEG-TS封装协议。SRT在底层使用UDT协议，在此基础上做了拥塞控制策略的相关优化以降低传输延时。SRT协议也有一些缺陷，包括协议复杂度较高，丢包场景下速度退避较大等。一般将SRT用于视频上行到转码服务器。
+
+\paragraph{WebRTC} WebRTC是一个免费的开源项目，通过简单的API为Web浏览器和移动应用程序提供实时通信（RTC）。WebRTC为视频会议设计，可以达到百毫秒级延迟，但同时因为这个设计初衷，WebRTC的伸缩性很差，难以用作直播用途。WebRTC正在通过W3C和IETF进行标准化。
+
+\subsection{基于HTTP的自适应流媒体协议}
+
+基于HTTP的自适应流媒体协议的基本思想是生成相同内容的多个版本（不同分辨率及码率），并将视频切分成数秒时长的片段，通过一个描述文件来整合片段信息。并且，与基于RTP的协议不同，基于HTTP的自适应流媒体协议可以穿越允许标准HTTP流量通过的任何防火墙或代理服务器。这允许从常规HTTP服务器提供内容，并通过广泛使用的基于HTTP的内容传递网络（CDN）传递内容，因此，基于HTTP的自适应流媒体协议有着较好的伸缩性。现在主流的基于HTTP自适应流媒体协议是苹果公司的HLS和MPEG-DASH。
+
+\paragraph{HLS} HTTP Live Streaming（HTTP实时流媒体协议）是Apple开发并于2009年发布的基于HTTP的自适应比特率流通信协议。该协议的支持在媒体播放器，Web浏览器，移动设备和流媒体服务器中得到了广泛的应用。HLS的延迟一般在十秒级。iOS设备只能使用HLS协议。通过使用LHLS可以提供更低的延迟，主要优化了切片策略、播放列表策略等实现。
+
+\paragraph{MPEG-DASH} Dynamic Adaptive Streaming over HTTP（MPEG-DASH）是第一个国际标准的基于HTTP的自适应比特率流解决方案。与类似但更为专有的解决方案（例如Microsoft的Smooth Streaming或Adobe的HDS）相比，对自适应流解决方案进行标准化意味着要向市场提供该解决方案可用于通用部署的信心。与HDS或MSS不同，DASH与编解码器无关，这意味着它可以使用以任何编码格式编码的内容，例如H.265，H.264，VP9等，当然也可以使用AV1编码格式的内容。
+
+\paragraph{CMAF} Common Media Application Format（CMAF）是一个标准化的容器，它的提出是为了解决流媒体行业中繁多的容器格式带来的问题，创建标准化的传输容器，以避免视频流工作流程中增加的成本与复杂性。。 随着流媒体协议的不同，文件容器也随之不同。HLS指定使用.ts格式Version7及以上可以使用fmp4格式，而DASH几乎统一使用基于ISOBMFF的.mp4容器。任何想要在Apple设备和Android设备上都吸引用户的内容分发者，必须对相同的音频和视频数据进行两次编码和存储，并且，相同内容、不同格式之间可能发生竞争，造成资源的浪费。
+
+CMAF寻求的不仅仅是减少复杂性，除此以外，通过分块编码和分块传输编码，CMAF可以改善延迟，这将补充基于HTTP的自适应流媒体协议在实时交付上的能力，CMAF可以提供低于3秒的延迟。
+
+\subsection{AV1的封装协议}
+
+AV1的支持封装协议有Matroska/WebM、ISOBMFF、RTP，AV1没有官方支持的MPEG-TS封装协议。
+
+% https://www.matroska.org/technical/specs/index.html
+\paragraph{Matroska} Matroska是一个自由，开放标准的多媒体容器格式，可以在一个文件中数量不受限制地存放视频，音频，图片或字幕轨道。Matroska的核心设计特性主要有文件内的快速查找；高错误恢复率；分章节；可选字幕；可选音频轨；模块化的可扩展性；基于互联网的流传输；类似DVD提供的菜单。
+
+\paragraph{WebM} WebM是一种专为Web设计的开放，免版税的媒体文件格式。WebM的文件结构基于Matroska容器。WebM的针对网络传输进行了优化，致力于满足在网络上提供视频的独特需求：低计算量，设备适应性好、容器格式简单、高质量的实时视频交付等。WebM项目主要由Google团队开发，支持的视频编码标准有VP8、VP9、AV1等。
+
+\paragraph{ISOBMFF}
+
+\paragraph{RTP}
+
+\paragraph{MPEG-TS}
+
+% \subsection{传输协议与封装协议的关联与选择限制}
+
+
+\subsection{AV1低延迟直播系统的传输与封装协议选择}
+
+在直播系统的传输与封装协议选择时，有三个选择标准：1. 必须是AV1编码标准支持的；2. 尽量满足低延迟的互联网传输。基于这两点，由表\ref{tab:protocol}有以下分析：
+
+\begin{enumerate} [label=\arabic*)]
+  \item 对于基于HTTP的自适应流媒体传输协议，HLS对封装格式的需求是MPEG-TS或fmp4，前者AV1没有官方的协议支持，后者包含在对ISOBMFF的支持中，可以实现；对于DASH，AV1支持使用WebM封装或fmp4封装。但基于HTTP的自适应流媒体传输协议的延迟一般较高；
+  \item 对于RTMP协议，不支持AV1编码协议，不考虑；
+  \item 对于RTSP协议，AV1支持其所需的RTP封装格式，在延迟上性能较好；
+  \item 对于SRT协议，AV1并没有MPEG-TS封装协议支持，但SRT可以用作上行到转码服务器的传输协议；
+  \item 对于WebRTC，虽然它有着最优秀的延迟性能，但是由于其设计是面向视频会议，伸缩性较差，不适合作为热流直播的协议选择。
+\end{enumerate}
+
+综上，综合考虑支持性和延迟、扩展性，选择RTSP作为AV1低延迟直播系统原型的传输协议。
+
+% 加入LHLS / CMAF？
+\begin{table}[!hpt]
+  \caption{AV1的传输与封装协议分析}
+  \label{tab:protocol}
+  \centering
+  \begin{tabular}{cccc} \toprule
+    协议     & 封装格式       & 延迟     & 可扩展性\\ \midrule
+    HLS     & MPEG-TS, fmp4 & 10-45s  & good  \\
+    DASH    & WebM, fmp4    & 10-45s  & good  \\
+    RTMP    & /             & 5s      & normal \\
+    RTSP    & RTP           & 2s      & normal \\
+    SRT     & MPEG-TS       & 2s      & normal \\
+    WebRTC  & RTP           & <1s     & bad    \\ \bottomrule
+  \end{tabular}
+\end{table}
+
+
+
+% \section{FFmpeg}
+
+\section{本章小结}
+
+本章是本论文研究需要涉及的基础知识，简要介绍了AV1编码标准的相关信息，介绍了AV1码流封装成“开放比特流单元（OBU）”的方式；介绍了常用的流媒体传输协议，其中包括有状态协议和基于HTTP的自适应流媒体协议，以及常见的多媒体封装协议，并根据相关协议的特性，结合对AV1编码标准的支持性与低延迟的要求，最终为直播系统原型构建选择了RTP作为封装格式，RTSP作为传输协议，选择SRT作为上行传输协议。
