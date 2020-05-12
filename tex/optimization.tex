@@ -114,7 +114,7 @@
   \begin{figure}[!htp]
     \centering
     \includegraphics[width=\textwidth]{svt-encoder-process.png}
-    \caption{SVT-AV1编码器过程图}
+    \caption{SVT-AV1编码器过程图\cite{EncoderDesignSVTAV1}}
   \label{fig:svt-encoder-process}
   \end{figure}
 
@@ -126,7 +126,7 @@
   \begin{figure}[!htp]
     \centering
     \includegraphics[width=\textwidth]{svt-srm.png}
-    \caption{SVT-AV1系统资源管理器示意图}
+    \caption{SVT-AV1系统资源管理器示意图\cite{EncoderDesignSVTAV1}}
   \label{fig:svt-srm}
   \end{figure}
 
@@ -746,11 +746,11 @@ uint32_t input_area_height)
     \setlength\abovecaptionskip{-0.05cm}
     \centering
     \subcaptionbox{原始算法超级块划分图\label{fig:dota2-origin-part}}
-                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_origin_partition.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_origin_partition.pdf}}
     \subcaptionbox{JND优化快速算法超级块划分图\label{fig:dota2-jnd-part}}
-                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_jnd_partition.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_jnd_partition.pdf}}
     \subcaptionbox{md-stage调整的JND优化快速算法超级块划分图\label{fig:dota2-md-part}}
-                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_md_partition.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_md_partition.pdf}}
     \caption{原始算法与所提算法的超级块划分对比图}
     \label{fig:dota2-part}
   \end{figure}
@@ -761,11 +761,11 @@ uint32_t input_area_height)
     \setlength\abovecaptionskip{-0.05cm}
     \centering
     \subcaptionbox{原始算法解码图像\label{fig:dota2-origin-dec}}
-                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_origin_decode.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_origin_decode.pdf}}
     \subcaptionbox{所提算法解码图像\label{fig:dota2-jnd-dec}}
-                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_jnd_decode.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_jnd_decode.pdf}}
     \subcaptionbox{md-stage调整的JND优化快速算法解码图像\label{fig:dota2-md-dec}}
-                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_md_dec.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_md_dec.pdf}}
     \caption{原始算法与所提算法的解码对比图}
     \label{fig:dota2-decode}
   \end{figure}
