@@ -2,8 +2,14 @@
 
 \section{AV1低延迟直播系统构建}
 
-  % TODO 流程图
-  AV1低延迟直播系统原型如图构建，主播端摄像头采集图像，进行H.264编码后，通过SRT协议传输到转码服务器，转码服务器使用FFmpeg，调用SVT-AV1编码器将接收到的码流进行H.264到AV1的转码，转码后进行RTP封装后，通过RTSP协议传输到观众端解码播放。
+  AV1低延迟直播系统原型如图\ref{fig:av1-sys}构建，主播端摄像头采集图像，进行H.264编码后，通过SRT协议传输到转码服务器，转码服务器使用FFmpeg，调用SVT-AV1编码器将接收到的码流进行H.264到AV1的转码，转码后进行RTP封装后，通过RTSP协议传输到观众端解码播放。
+
+  \begin{figure}[!htp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{av1-sys.png}
+    \caption{AV1低延迟直播系统原型}
+   \label{fig:av1-sys}
+  \end{figure}
 
   % AV1低延迟直播系统原型基于FFmpeg搭建。
 
@@ -36,7 +42,7 @@
   \paragraph{预启动SVT-AV1消除初始化延迟} 上述优化malloc的方法以及其他优化初始化速度的方法只能在一定程度上减小SVT-AV1的初始化时间。对于低延迟的直播系统，要求尽量减小直播系统延迟，可以通过预启动SVT-AV1编码器来消除初始化延迟，这需要约定上行码流的分辨率，因为预启动的行为本身是使用了不能预先获知的信息。在FFmpeg接收到上行码流前按照约定的分辨率预先初始化\texttt{AVCodec}，接收到上行码流后用预先初始化好的\texttt{AVCodec}，不再重新初始化，即可消除这部分延迟。
 
 \subsection{FFmpeg中AV1的RTP封装实现}
-  由于AV1编码的RTP封装协议仍处于草案阶段，以及AV1的RTP封装协议主要用于WebRTC，在FFmpeg中并没有AV1编码的RTP封装支持，因此，为了实现AV1直播系统原型，实现了FFmpeg中AV1的RTP封装实现。
+  由于AV1编码的RTP封装协议\cite{RTPPayloadFormat}仍处于草案阶段，以及AV1的RTP封装协议主要用于WebRTC，在FFmpeg中并没有AV1编码的RTP封装支持，因此，为了实现AV1直播系统原型，实现了FFmpeg中AV1的RTP封装实现。
 
   由于RTP的packet大小限制为1500 bytes，再加上RTP头部的开销，实际payload可用大小小于1500 bytes。对于视频编码，I帧大小往往会超过这个限制，而一些P帧可能远远达不到这个限制，因此需要对OBU进行拆分和聚合，提高RTP封装的传输效率。根据图\ref{fig:av1rtp-aggr}的聚合头部规则对OBU进行拆分与聚合，封装成RTP packet进行传输，解封装时，根据RTP packet中的聚合头部，将packet接封装为OBU，传到解码器进行解码。
 
@@ -62,7 +68,9 @@
 \chapter{SVT-AV1编码器低延迟优化}
 
 \section{SVT架构}
-  Intel Scalable Video Technology (SVT)[[12]](svt wp) 编码器体系结构是专为x86处理器设计的，并且特别针对Intel®Xeon®可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。
+  Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{awsScalableVideoTechnology2019}编码器体系结构是专为x86处理器设计的，并且特别针对Intel®Xeon®可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。
+
+  SVT架构的优势在于其伸缩性，可以根据处理器的核数调整各过程的线程数，因此，对于性能较强的服务器，使用SVT架构可以有效地释放处理器性能，从而提升编码速度；对于性能较差的处理器，SVT架构并不能提升编码速度，反而因为多线程的竞争导致编码速度下降，还因为SVT架构拆分了编码器内核，引入了更多的并行，导致编码效率的下降。对于直播转码服务的场景，往往会使用性能较强的服务器处理，适合SVT架构的发挥。
 
 \subsection{SVT-AV1编码器过程}
   SVT架构是围绕Process过程设计的。过程是软件中的执行线程或硬件中的IP内核。过程执行一个或多个编码器任务（例如，运动估计，速率控制，解块滤波器等）。过程分为基于图像面向控制和面向数据处理两类。控制过程仅允许单个线程实例，因为控制决策必须全局统一，否则有发生数据泄漏和死锁等情况的风险。
@@ -232,69 +240,95 @@
 
   这样设计的机制在普通视频流编码中是合理的。但是对于我们要求的低延迟编码，EOS机制意味着额外的一个帧输入间隔延迟，对于30fps的流，这个延迟为33ms，相对较大，因此我们可以假设输入的视频流的总帧数是未知的，RESOURCE过程在收到一帧图像后立刻发送给下一级的PA过程，在流需要停止的时候才发送EOS包。
 \subsection{分tile优化}
-  处于性能考虑，SVT-AV1的分tile机制限制在只能分行，不能分列。这导致编码过程中，每个tile编码的波形并行的tile宽度没有发生变化，在一行上的传播次数不变，使得分tile的编码延迟增益十分有限。为了达到更低的编码延迟，这里选择牺牲一部分编码效率来提高并行率，降低编码延迟
+  处于性能考虑，SVT-AV1的分tile机制限制在只能分行，不能分列。这导致编码过程中，每个tile编码的波形并行的tile宽度没有发生变化，在一行上的传播次数不变，使得分tile的编码延迟增益十分有限。为了达到更低的编码延迟，这里选择牺牲一部分编码效率来提高并行率，降低编码延迟。
 
 
 \section{基于JND的快速编码优化}
 
   % 能和学长的论文在介绍部分有多少相似性？会查重否？
   \subsection{人眼视觉感知特性} \label{sec:HVS}
-  人眼的生理学构造决定了它独特的视觉感知特性。通过研究人眼视觉感知特性，我们可以利用可解释的数学模型模拟人类视觉系统的主观感受与客观信息之间的关系。经过多年的发展，已经有部分人眼视觉感知特性被发掘，并有着较为成熟的理论支持。下面将列举部分视觉感知特性如亮度特性、对比敏感度特性、视觉掩盖效应等介绍。
+  人眼的生理学构造决定了它独特的视觉感知特性。通过研究人眼视觉感知特性，我们可以将人眼视觉系统的主观感受与接收的客观信息建立联系，并将二者的关系数学建模分析。多年的发展以来，已经有一些人眼视觉感知特性被开发，并且对应有较为成熟的理论解释。下面将介绍部分视觉感知特性：亮度特性、视觉掩蔽效应、视觉注意机制等。
 
   \begin{figure}[!htp]
     \centering
     \includegraphics[width=0.8\textwidth]{brightness.png}
-    \caption{亮度敏感度对比}
+    \caption{亮度自适应特性}
   \label{fig:brightness}
   \end{figure}
 
-  \paragraph{亮度自适应特性} 亮度自适应特性指的是，人类视觉系统在接受多种不同强度的光照下，能够调节自身对于光照强度的敏感度的特性以适应很大范围的亮度，使得自身对亮度有很强的适应能力。人眼可以通过亮度特性调节出宽达 108 倍的亮度范围，其体现在三个方面：暗适应、亮适应和局部适应。正因为如此，人类视觉系统对于绝对亮度不敏感，对于相对亮度十分敏感，其能够通过目标物体和周围环境背景的亮度差来调整自身的亮度感知能力，这被称为对比度敏感特性。如图\ref{fig:brightness}所示，每个圆形图案的亮度都是相同的，但随着正方形背景图案的亮度不断变暗，人眼会感觉圆形图案的亮度在不断升高。除了亮度的对比效应之外，还有彩色饱和度对比效应、彩色色调对比效应和面积对比效应等。
+  \paragraph{亮度自适应特性} 亮度自适应特性指的是，当受到多种不同强度的光照下，人眼视觉系统可以通过调节自身对于光强的敏感度来适应较大的亮度范围。通过亮度特性人眼可以调节出的对高达百倍的亮度差的适应性，具体体现在三个方面：对暗部的适性应、对亮部的适应性和局部亮度适应性。由于亮度自适应特性，人类视觉系统对绝对亮度不敏感，对相对亮度敏感，这被称为亮度对比度敏感特性：能够通过视觉目标和背景亮度差值调整自身的亮度感知能力。如图\ref{fig:brightness}，五个圆形图案的亮度相同，但随着圆形外部正方形背景亮度的不断降低，人眼感知结果是圆形图案的亮度从左到右逐渐升高。
 
-  \begin{figure}[!htp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{mach-effect.png}
-    \caption{马赫效应}
-  \label{fig:mach}
-  \end{figure}
+  % \begin{figure}[!htp]
+  %   \centering
+  %   \includegraphics[width=0.8\textwidth]{mach-effect.png}
+  %   \caption{马赫效应}
+  % \label{fig:mach}
+  % \end{figure}
 
-  人眼视觉对图像边缘处的增强感受。它指的是当目标物体亮度发生突变，人眼会感觉物体亮度较高的一侧更亮，亮度较暗的一侧会更暗。这种现象导致在发生变化的边缘处人眼会感觉到出现了一条分割线，但是实际上从客观数值上是检测不到这条分割线的。如图\ref{fig:mach}所示，为马赫效应的示意图，其中每个灰度带都相差一个固定的灰度值，人眼在对每两个相邻的灰度带进行观测时，会感觉中间有一条分割线对其进行分割。该效应反映了人类视觉系统的对比增强特性，能够增强目标轮廓，有利于人眼检测出视觉信息上的特定目标。这种特性显示出人类视觉系统会自动增强亮度变化较大的物体的边缘信息，所以在对视觉感知算法进行研究时需要特地考虑边缘的信息。
+  % 人眼视觉对图像边缘处的增强感受。它指的是当目标物体亮度发生突变，人眼会感觉物体亮度较高的一侧更亮，亮度较暗的一侧会更暗。这种现象导致在发生变化的边缘处人眼会感觉到出现了一条分割线，但是实际上从客观数值上是检测不到这条分割线的。如图\ref{fig:mach}所示，为马赫效应的示意图，其中每个灰度带都相差一个固定的灰度值，人眼在对每两个相邻的灰度带进行观测时，会感觉中间有一条分割线对其进行分割。该效应反映了人类视觉系统的对比增强特性，能够增强目标轮廓，有利于人眼检测出视觉信息上的特定目标。这种特性显示出人类视觉系统会自动增强亮度变化较大的物体的边缘信息，所以在对视觉感知算法进行研究时需要特地考虑边缘的信息。
 
-  \paragraph{视觉掩蔽效应} 人类视觉系统在对多个视觉信号进行感知时，各种视觉信号互相影响、互相干扰产生的现象被称为视觉掩蔽效应。其具体表现为一种视觉信号的存在会影响另一个视觉信号的可见性，导致后者被前者“掩蔽”，使得后者不可察觉或不可见。例如在压缩图像中，某些失真在特定区域中出现时不易被察觉到，但若出现在其它的特定区域时会变得尤为明显。经过长时间的研究，目前已经发现有多种影响掩蔽效应的因素，包括视觉信号的频率、运动程度、纹理复杂度、色度与亮度等。常见的视觉掩蔽效应有：对比掩蔽效应、纹理掩蔽效应、运动掩蔽效应等。由于视觉掩蔽效应十分常见，下面我们简单介绍三种常见的视觉掩蔽效应。
+  \paragraph{视觉掩蔽效应} 视觉掩蔽效应指人类视觉系统在处理多个视觉信号时，由于各视觉信号相互干扰而无法处理全部信号的信息的现象。其具体表现为当目标信号与掩蔽信号同时存在时，导致目标信号被掩蔽信号影响，使其难以察觉。例如在图像压缩中，一些失真出现在特定区域中时不易被察觉，但出现在某些区域时会变得非常明显。研究发现有许多影响掩蔽效应的因素，其中包括视觉信号频率、运动幅度、色度、亮度、纹理复杂度等。常见的视觉掩蔽效应有：运动掩蔽效应、对比掩蔽效应、纹理掩蔽效应等。以下简要介绍三种常见的视觉掩蔽效应。
   \begin{description}
-    \item [1) 对比度掩蔽效应]
-    对比度掩蔽效应指的是人类视觉系统通过对比不同灰度的区域而产生的掩蔽效应。人类视觉系统根据图像中亮度的变化而改变自身对各个区域的敏感度，该效应常常会发生在图像的边缘区域。
-    \item [2) 运动掩蔽效应]
-    当观测物体运动剧烈时或视频相邻帧变化很大时，人类视觉系统对这些区域具有较低的敏感度，难以感知到其中的具体细节，所以这些区域相比运动缓慢的区域能够容纳更高的图像失真。这种现象被称为运动掩蔽效应。
+    \item [1) 运动掩蔽效应]
+    运动掩蔽效应指的是当目标范围物体运动幅度较大时或相邻视频帧变化较大时，人类视觉系统对这些运动较大的区域敏感度较低，对于其中的细节感知能力较差，难以察觉到这些区域的失真。相对运动幅度较低的区域，运动幅度较大的区域能够容纳更高的图像失真。
+    \item [2) 对比度掩蔽效应]
+    对比度掩盖效果是指人类视觉系统在比较不同灰度级别的区域的时候产生的掩蔽效果。人眼会根据图像亮度的变化而改变其对各个区域的敏感度，这种影响通常发生在图像的边缘区域。
     \item [3) 纹理掩蔽效应]
-    对于纹理掩蔽效应而言，纹理复杂度较高的区域出现的失真相比纹理复杂度较低的区域的失真更难被人类视觉系统所察觉，也就是说人类视觉系统对纹理复杂区域中的失真不敏感。因此，基于纹理掩蔽效应，纹理复杂区域能够掩蔽或隐藏更多的视觉失真。
+    人类视觉系统对纹理复杂度较高区域中的失真不敏感。对于视觉中不同纹理复杂度的内容，人眼纹理复杂度较高的区域出现的失真相比纹理复杂度较低的区域的失真更难被人类视觉系统所察觉，
   \end{description}
 
-  \paragraph{视觉注意机制} 人类视觉系统在接受外界大量视觉信号时，并不会对各种图像都给予相同的关注程度。人类视觉系统能够快速地将注意力放在更为人感兴趣的目标物体上，而给予其它不感兴趣的物体更低的关注度，这种人类视觉系统主动提取感兴趣区域的机制被称为视觉注意机制[44, 45]。通常来说，视觉注意区域的提取有两种模式，一种是自顶向下的模式，一种是自底向上的模式。自顶向下模式是指人类视觉系统被人类主观意识驱动下，强行将注意力聚焦在某个区域，是一个主观能动的过程；自底向上模式是指由于图像区域中的显著性影响下，人类视觉系统会将注意力自动放在图像的显著区域，是一个被动客观的过程。这两种注意力模型彼此影响，共同完成对图像信息的提取、分析和处理等过程。由于自顶向下的模型依赖于特定具体的任务，根据不同的需求其注意力会聚焦在不同的区域。 所以目前大部分算法对自底向上模式进行研究，通过对图像中各种低级特征的对比分析，确定图像中的显著区域，其中具有代表性的算法模型包括 Itti\&Koch 显著性计算模型[46]、 Stentiford 模型[47]、 GBVS 模型[48]等。其中 Itti\&Koch 模型是最具影响力的一种自下而上的显著性计算模型之一，其首先对图像进行低通滤波，然后从各个尺度对特征进行计算与分析，最后根据组合的特征计算出显著图。
+  \paragraph{视觉注意机制} 当人类视觉系统处理视觉信号时，并不会对所有视觉信号均给予相同的注意力，而是会将注意力快速切换到更感兴趣的目标物体，对其它不感兴趣的物体则给予较低的关注，这类主动提取感兴趣区域的机制被称作视觉注意机制\cite{borjiStateoftheArtVisualAttention2013}。存在两种提取视觉注意力区域的模式，一种是自上而下，由人类主观意志驱动将注意力集中到某特定区域；另一种是自下而上，在图像区域的显著性影响下，自然地将注意力集中到显著性较强的区域，是被动的过程。两个视觉注意区域模型相互影响，共同完成图像信息的提取与分析处理。因为自上而下的模型会根据不同的处理需求将注意力分配到不同区域，是不确定的，因此当前的算法一般研究自底向上的模式，通过分析基本的图像特性来寻找图像中的显著区域。
 
-  由视觉注意机制产生的显著区域占据人类视觉系统中更大的注意力，相比非显著区域，其在视觉上会对视频图像的质量产生更大的影响，因此将显著区域与非显著区域分开处理有助于提高图像主观视觉质量。在视频编码领域中，已经有许多基于视觉注意机制的研究与工作，例如 Bai 等人提出了基于视觉显著性的码率控制方案[49]，通过优先分配比特资源到视觉上更显著的区域，有效提升视觉感兴趣区域(Region of Interest， ROI)的编码性能。
+  人类视觉系统会将较多的注意力分配到视觉注意机制确定的显著区域，与非显著区域对比，显著区域对图像的质量在视觉上有更大的影响。因此，区分是否显著区域并分别处理可以提高图像主观视觉质量。已有许多基于视觉注意机制的研究应用在视频编码领域，Bai等人提出的基于视觉感兴趣区域（Region of Interest， ROI）的码率控制方案\cite{baiSaliencyBasedRate2016}，通过将码率预算优先分配到视觉感兴趣区域从而提高编码性能。
 
-  \subsection{JND模型介绍}
-  传统的视频编码利用图像中的统计相关性来去除图像在空间域和时间域上的冗余，然而却没有考虑任何人类视觉系统上的特性，因此最终压缩后的视频中仍存在大量的视觉感知冗余。而为了能够用数字描述视觉感知冗余，各领域的学者做了大量的工作。而其中被广泛接受的是恰可察觉失真（Just-Noticeable-Distortion,JND）模型，该模型描述了人类视觉系统中恰可察觉的失真阈值，能够有效度量视频图像中的视觉感知冗余。通常在对 JND 阈值模型进行建模时需要考虑三种视觉特性：亮度适应性，即人类视觉系统中因为目标物体和背景亮度之间的差异变化产生的视觉掩蔽效应；对比度掩蔽，即人类视觉系统中空间亮度分布不均匀产生的掩蔽效应；对比敏感度函数，为人类视觉系统中因空间频率变化产生的掩蔽效应。
+  \subsection{像素级JND模型介绍}
+  传统的视频编码旨在去除视频在时域与空域的信息冗余，不考虑对人眼视觉特性的适应性。因此，编码后的视频仍包含许多人眼视觉无法察觉到的冗余，这些感知冗余是我们的优化方向。为了定量处理这些感知冗余，在感知编码中恰可察觉失真（Just-Noticeable-Distortion, JND）模型是一类较好的选择，JND模型根据人眼视觉特性提出，定量描述了人眼恰可察觉的失真阈值，用于度量视频编码中的感知冗余。
 
-  近年来，已经有大量JND模型被提出，现有模型大致可分为两类：一类是子带域恰可察觉失真(Subband-domain Just-Noticeable-Distortion)模型，使用该类模型时，需要先将视频像素从像素域变换为子带域，另一类为
-  像素域 JND 模型，该类模型不需要变换，直接在原始图像像素域上计算 JND 感知阈值。因为像素域 JND 模型在实际使用中不需要进行频域的转换，能够节省大量的复杂度，所以其在计算 JND 阈值分布图时更加轻便快速，常在图像或视频处理领域中被使用。现有的像素域 JND 阈值模型一般由两部分组成，分别为亮度适应性和空间对比度掩蔽。
+  近年来，对JND模型的研究可分为两类：一类是子带域（Subband-domain）JND模型，该类模型在子带域分析，使用该类模型时，需要先将原视频变换到子带域，另一类是像素域JND模型，该类模型直接在原始视频的图像像素域上计算。由于子带域JND模型需要进行频域转换，需要额外的复杂度，在实际应用中效率较低，相对而言，像素域JND由于计算更快，在视频、图像处理中更常用。现有的像素域JND模型一般由亮度适应性和空间对比度掩蔽两部分组成。
 
-  \paragraph{亮度适应性} 如\ref{sec:HVS}小节，人类视觉系统会根据背景亮度的大小不一表现出不同的视觉敏感度，称为亮度自适应特性(Luminance Adaptation, LA)。有文献研究表明，人眼处在黑暗环境时只有较低的视觉敏感度，在超过一个亮度阈值后，视觉敏感度随着环境亮度增加而逐渐升高[54]。因此，人眼在不同的亮度环境下的可见性阈值是不一致的，可见性阈值与环境亮度的关系如图 4-4 所示，图中横坐标表示环境亮度，纵坐标表示人眼的可见性阈值。如图可见，当环境亮度低于 127 时，视觉可见性阈值会随着环境亮度的增加以幂函数的形式下降；当环境亮度超过 127 时，视觉可见性阈值会随着环境亮度的增加以线性函数的方式上升。
-
-  % TODO figureof visibility threshold curve
-  该文献[54]将亮度适应性与视觉可见性阈值之间的关系建模为一个基于背景亮度的分段函数，如式\ref{equ:la}：
+  \begin{figure}[!htp]
+		\centering
+		\includegraphics[width=0.66\textwidth]{bg-luma.png}
+		\caption{视觉阈值与背景亮度相关曲线\cite{chun-hsienchouPerceptuallyTunedSubband1995}}
+		\label{fig:bg-luma}
+	\end{figure}
+  \paragraph{亮度适应性} 如\ref{sec:HVS}小节，人类视觉系统会根据背景亮度的大小不一表现出不同的视觉敏感度，称为亮度自适应特性（Luminance Adaptation, LA）。文献\cite{chun-hsienchouPerceptuallyTunedSubband1995}表明，人眼的视觉阈值与背景亮度呈非线性关系，其关系如图\ref{fig:bg-luma}所示，当背景亮度低于127时，视觉可见性阈值以幂函数形式下降，当背景亮度高于127时，视觉可见性阈值随背景亮度的增加线性增长。据此，将亮度适应性与视觉阈值的关系建模为基于背景亮度的分段函数\cite{chun-hsienchouPerceptuallyTunedSubband1995}，如式\ref{equ:la}所示:
 
   \begin{equation} \label{equ:la}
     LA(i, j) = \begin{cases}
-      \left(1 - \sqrt{\frac{B(i, j)}{127}}\right) \cdot 17, &B(i, j)\leq 127 \\
-      \left(B(i, j) - 127\right) \cdot \frac{3}{128} + 3, &else
+      \left(1 - \sqrt{\frac{B(i, j)}{127}}\right) \cdot 17, & \mathrm{if}\: B(i, j)\leq 127 \\
+      \left(B(i, j) - 127\right) \cdot \frac{3}{128} + 3, &\mathrm{else},
     \end{cases}
   \end{equation}
-  其中，$B(i, j)$为图像中像素点$(i, j)$周围$5\times 5$范围内的亮度均值。
+  其中，$B(i, j)$为图像中像素点$(i, j)$周围$5\times 5$范围内的亮度与图\ref{fig:5x5luma-kernel}所示的卷积核相关结果。
 
-  \paragraph{对比度掩蔽效应} 如前文所述，人类视觉系统在对多个视觉信号进行感知时，会发生视觉掩蔽效  应，具体表现为其中一种视觉信号会影响其它视觉信号的可见性，导致人类视觉系统无法感知后者或对其敏感度下降。对比度掩蔽效应是最为常见的掩蔽效应之一，其指的是人类视觉系统在观看对比度不一致的区域时产生的掩蔽效应，具有高对比度的区域比起具有低对比度的区域会产生更强的视觉掩蔽效应。
+  \begin{figure}
+    \hspace{1cm}
+		\subcaptionbox{$5\times 5$背景亮度卷积核\label{fig:5x5luma-kernel}}[0.3\textwidth]{
+			\begin{tabular}{|c|c|c|c|c|}	\hline
+				1 & 1 & 1 & 1 & 1 \\ \hline
+				1 & 2 & 2 & 2 & 1 \\ \hline
+				1 & 2 & 0 & 2 & 1 \\ \hline
+				1 & 2 & 2 & 2 & 1 \\ \hline
+				1 & 1 & 1 & 1 & 1 \\ \hline
+			\end{tabular}
+    }
+    \hspace{2cm}
+    \subcaptionbox{$8\times 8$背景亮度卷积核\label{fig:8x8luma-kernel}}[0.3\textwidth]{
+			\begin{tabular}{|c|c|c|c|c|c|c|c|}	\hline
+				1& 2& 2& 3& 3& 2& 2& 1 \\ \hline
+				1& 2& 0& 3& 3& 0& 2& 1 \\ \hline
+				1& 3& 3& 5& 5& 3& 3& 1 \\ \hline
+				1& 3& 3& 5& 5& 3& 3& 1 \\ \hline
+				1& 2& 0& 3& 3& 0& 2& 1 \\ \hline
+				1& 2& 2& 3& 3& 2& 2& 1 \\ \hline
+				1& 1& 1& 2& 2& 1& 1& 1 \\ \hline
+			\end{tabular}
+		}
+    \caption{背景亮度卷积核}
+	\end{figure}
 
-  根据文献[57]所述，由对比度产生的掩蔽效应可以建模为基于图像区域中像素的亮度对比度的函数，得到对比度掩蔽效应(Constast Masking, CM)因子，如式\ref{equ:cm}所示：
+  \paragraph{对比度掩蔽效应} 对比度掩蔽效应是一种常见且重要掩蔽效应，指在观看对比度不同的区域时产生的掩蔽效应，相比低对比度的区域，高对比度的区域具有更强的视觉掩蔽效应。根据文献\cite{wuPatternMaskingEstimation2013}，对比度掩蔽效应（Constast Masking, CM）可以建模关于亮度对比度的非线性函数，由此得到对比度掩蔽效应因子$CM$，如式\ref{equ:cm}所示：
 
   \begin{equation} \label{equ:cm}
     CM(i, j) = 0.115 \cdot \frac{\alpha \cdot L_c(i, j)^{2.4}}{L_c(i, j)^2 + \beta^2}
@@ -302,27 +336,26 @@
   其中$\alpha$和$\beta$为常数，分别取16和26。$L_c(i, j)$为图像中像素点$(i, j)$位置的$5\times 5$范围亮度标准差。
   % question: CM到底如Matlab中的是亮度方差（标准差）还是如黄yc的论文里面写的用梯度、Prewitt算子算的。
 
-  \paragraph{非线性组合模型} 计算得到亮度适应性$LA$和空间视觉掩蔽效应强度$CM$这两种视觉特性强度后，需要合适的模型对其进行组合并应用。文献[53]提出了一种非线性组合模型(Nonlinear Additivity Model for Masking, NAMM)，其考虑了三个方面：
-  \begin{enumerate} [label=\arabic*)]
-    \item 比起在邻域中只有一种掩蔽效应时，存在多个掩蔽效应会使得目标物体的失真更难以被发觉，所以多个掩蔽效应的组合效果应该使用某种形式的非线性相加；
-    \item 需要考虑色度通道的掩蔽效应;
-    \item 需要对边缘区域与平坦区域和纹理区域进行区分，避免对边缘区域的掩盖效应过高的估计。
-  \end{enumerate}
+  \paragraph{非线性组合模型} 计算得到亮度适应性因子$LA$和对比度掩蔽效应因子$CM$这两种视觉特性强度后，如何有效将它们集成在一起获得准确的JND阈值成为了一个重要问题。考虑到与只存在一种掩蔽效应相比，多个掩蔽效应会导致目标区域的失真更难以察觉，因此多个掩蔽效应的组合应采取某种形式的加法，一方面，两个掩蔽因子之间重叠会导致各自的增益降低，另一方面，需要考虑两个因子之间相互重叠的影响范围。基于以上的考虑，文献\cite{yangJustNoticeableDistortion2005}提出了一种非线性组合模型，能够将两种视觉特性强度进行组合，得到最终的JND感知阈值模型。因此，采用该非线性组合模型对亮度适应性因子$LA$和对比度掩蔽效应因子$CM$组合，得到的JND感知阈值模型，如式\ref{equ:jnd}:
 
-  基于上述三个方面的考虑，该文献提出了 NAMM 模型，能够将不同的视觉特性强度进行组合，得到性能优异的JND 感知阈值模型。因此，本章采用 NAMM 模型对亮度自适应$LA$和空间视觉掩蔽效应强度$CM$进行组合得到 JND 感知阈值模型，如式\ref{equ:jnd}所示:
   \begin{equation} \label{equ:jnd}
-    \mathrm{JND_s(i, j)} = LA(i, j) + CM(i, j) - 0.3 \cdot \min \left\{LA(i, j) , CM(i, j)\right\}
+    \mathrm{JND}(i, j) = LA(i, j) + CM(i, j) - 0.3 \cdot \min \left\{LA(i, j) , CM(i, j)\right\}
   \end{equation}
 
-  基于式\ref{equ:jnd}，可以计算一个视频帧的JND感知阈值矩阵，图像区域的JND感知阈值越大，表明其区域中包含更丰富的纹理细节，元素的排列组合更为无序，具有较高的图像结构模式掩蔽效应和空间掩蔽效应，人类视觉系统对失真的敏感度较低。相反，图像区域的 JND 感知阈值越小，表明图像区域更加平坦与规则，图像元素较为同质与有序，此时的空间掩蔽效应和模式掩蔽效应都较弱，人类视觉系统对失真的敏感度较高。因此，得到的 JND 感知阈值可以有效度量图像区域中纹理的复杂度和视觉失真敏感度。
-
-  % 加入JND图片与讲解
 
 
+	\subsection{块级JND模型\label{sec:blk-based-jnd}}
+	原始的JND感知阈值模型是像素级模型，处理一个视频帧时，需要对其中的每个像素位置进行计算，运算量较大，严重影响算法的延迟，为了将JND感知阈值模型用在实时的低延迟编码中，需要对模型进行简化。结合后续将JND感知阈值用于分区决策中提前终止算法，将原始的像素级JND感知阈值模型简化为$8\times 8$块级模型，最小处理单位化为$8\times 8$块。式\ref{equ:la}中的亮度均值计算使用的卷积核替换为图\ref{fig:8x8luma-kernel}所示的$8\times 8$卷集合，式\ref{equ:cm}中使用的亮度标准差替换为$8\times 8$块内的亮度标准差。由此计算块级的JND感知阈值$\mathrm{JND_{8x8}}(i, j)$。
 
+	\begin{equation} \label{equ:jnd2}
+		\mathrm{JND_{8x8}}(m, n) = LA(m, n) + CM(m, n) - 0.3 \cdot \min \left\{LA(m, n) , CM(m, n)\right\}
+	\end{equation}
+	其中，$m, n$分别表示视频帧的$8\times 8$块行、列索引。
+
+  根据式\ref{equ:jnd2}，可以计算得到视频帧的块级JND感知阈值矩阵。其中的JND感知阈值越高，表示该$8\times 8$块的纹理细节丰富，元素排列无序，掩蔽效应较强，人类视觉系统对其失真的敏感度较低。反之，若JND感知阈值越小，表示该$8\times 8$块较为平坦，元素趋于同质，掩蔽效应较弱，人类视觉系统对失真的敏感度较高。综上，可以根据计算得到的JND感知阈值对视频帧的纹理复杂度与图像失真敏感度进行评估。
 
   \subsection{基于JND的超级块快速划分优化算法}
-  文献[62]提出，图像区域的 JND 感知阈值方差能够反映图像的感知纹理一致性，当图像区域的 JND 感知阈值方差较大时，该区域具有较高的纹理复杂度与非同质内容。相反，当图像区域的 JND 感知阈值方差较小时，该区域相对较为平坦，具有较低的纹理复杂度和大量同质内容。而 VP9 的超级块划分结果与超级块中的图像内容密切相关，一般在纹理复杂的区域，超级块划分深度较深。与之相反，在平坦光滑的区域，超级块划分深度较浅。如图\ref{fig:jnd-sb}，从左往右纹理复杂度逐渐加深，超级块划分深度更高。
+  根据文献\cite{guoqingxiangImprovedAdaptiveQuantization2017}，计算图像块的JND感知阈值方差可以反映图像块中的感知纹理一致性。若图像块的JND感知阈值方差较大，表示该块中纹理复杂度较高；反之，若图像块的JND感知阈值方差较小，表示该块相对平坦，纹理复杂度较低。在AV1视频编码中，超级块中的图像内容特性决定了超级块划分，一般对于纹理复杂度较高的区域，超级块划分较深，对于平坦的图像内容，超级块划分深度较浅、甚至不划分。图\ref{fig:jnd-sb}展示了一些超级块的划分结果，从左往右，超级块中纹理复杂度逐渐增加，对应的超级块划分更加深入仔细。
 
   \begin{figure}[!hbtp]
     \centering
@@ -340,33 +373,21 @@
     \label{fig:jnd-sb}
   \end{figure}
 
-  原始的JND感知阈值模型是像素级模型，处理一个视频帧时，需要对其中的每个像素位置进行计算，运算量较大，严重影响算法的延迟，为了将JND感知阈值模型用在实时的低延迟编码中，需要对模型进行简化。结合后续JND用于分区决策中提前终止，将原始的像素级JND感知阈值模型简化为$8\times 8$块级模型，最小处理单位化为$8\times 8$块。式\ref{equ:la}中的亮度均值替换为与下式\ref{equ:luma-kernel}$8\times 8$矩阵相关，式\ref{equ:cm}中使用的亮度标准差替换为$8\times 8$块内的亮度标准差。由此计算块级的JND感知阈值$JND_{8x8}(i, j)$。
+  根据\ref{sec:blk-based-jnd}提出的块级JND感知阈值定义，一个$8\times 8$编码块的感知特征可以通过块级的JND感知阈值$\mathrm{JND_{8x8}}(i, j)$反映，对于更高级别的编码块，其特征变化程度可以通过它的四个编码子块的JND感知阈值差异程度来表现。如式\ref{equ:pi}所示，定义一个编码块的感知划分指标PI为其四个编码子块PI的最大差值。
 
-  \begin{equation} \label{equ:luma-kernel}
-    bg_{kernel} = \left[ \begin{matrix}
-      1& 2& 2& 3& 3& 2& 2& 1 \\
-      1& 2& 0& 3& 3& 0& 2& 1 \\
-      1& 3& 3& 5& 5& 3& 3& 1 \\
-      1& 3& 3& 5& 5& 3& 3& 1 \\
-      1& 2& 0& 3& 3& 0& 2& 1 \\
-      1& 2& 2& 3& 3& 2& 2& 1 \\
-      1& 1& 1& 2& 2& 1& 1& 1
-    \end{matrix}\right]
+  \begin{equation} \label{equ:pi}
+    \mathrm{PI}(d, k) =
+    \begin{dcases}
+      \max_{m,n\in \{0, 1, 2, 3\}} \{\mathrm{PI}(d+1, k, m) - \mathrm{PI}(d+1,k, n) \} , &\mathrm{if} \, d \leq 2,\\
+      \quad \mathrm{JND_{8x8}}(k), &\mathrm{if}\, d = 2,
+    \end{dcases}
   \end{equation}
 
-  一个$8\times 8$编码块的感知特征可以通过块级的JND感知阈值$JND_{8x8}(i, j)$反映，对于更高级别的编码块，其特征变化程度可以通过它的四个编码子块的JND感知阈值差异程度来表现。如式\ref{equ:pi}所示，定义一个编码块的感知划分指标PI为其四个编码子块的最大差值。
-
-  \begin{align} \label{equ:pi}
-    \mathrm{PI}(d, k) &= \max_{m,n\in \{0, 1, 2, 3\}} \{\mathrm{PI}(d+1, k, m) - \mathrm{PI}(d+1,k, n) \} \\
-    \mathrm{PI}(3, k) &= \mathrm{JND_s(k)}
-  \end{align}
-  其中$d$表示划分深度，$64\times 64$划分深度为0，依次递增到$8\times 8$划分深度为3 ，$k$表示父块序号，$m, n$表示子块相对序号。
-
-  PI大表明编码块内特征差异大，需要对其进行划分，PI小表明编码块内特征差异小，可以考虑提前终止编码块划分结构的搜索。
+  其中$d$表示划分深度，$64\times 64$划分深度为0，依次递增到$8\times 8$划分深度为3 ，$k$表示父块序号，$m, n$表示子块相对序号。PI大表明编码子块间特征差异大，更需要对其进行划分，PI小表明编码块内特征差异小，可以考虑提前终止编码块划分结构的搜索。
 
   \subsubsection{感知划分指标分析}
 
-  分析超级块划分与感知划分指标的关系，使用twitch的8个1080p游戏序列测试分析。以HEARTHSTONE序列为例，其划分模式与感知划分指标PI有如图\ref{fig:jnd-part-PI-example}的关系，可以发现，非划分模式的PI相对较小，因此可以通过感知划分指标PI来指导块划分时的提前终止。分析8个1080p游戏序列，取阈值T为非划分命中率大于50\%的值来均衡加速比与bdrate的提升。另外，考虑到量化参数对块划分的影响，较小的QP下，视频编码会分配更多的码率，通过更仔细的搜索与块划分来得到更好的重建质量，感知划分指标PI取的阈值T也相对更小。不同QP下应设定不同的阈值T来提高算法性能。最终的阈值T选择如表\ref{tab:av1-jnd-part-th}所示。
+ 使用twitch的10个1080p游戏序列分析超级块划分方式与感知划分指标PI的关系。经过测试分析，以HearthStone序列为例，其划分模式与感知划分指标PI有如图\ref{fig:jnd-part-PI-example}的关系，可以发现，非划分模式的感知划分指标PI相对较小，并且与划分模式的感知划分指标PI具有一定区分性，因此可以通过感知划分指标PI来指导块划分时的提前终止。而相对应的，划分模式的感知划分指标PI的统计特性并不能找到明显的区分性，因此通过感知划分指标PI难以指导块划分时的提前划分。造成这个区别的原因可能是一般来说游戏序列中的平坦区域比较极端化，与提前终止划分的算法契合度高，而纹理复杂区域各有各的特点，共同特性较少。
 
   % 这张图需要重新画
   \begin{figure}[!htp]
@@ -375,6 +396,8 @@
     \caption{HEARTHSTONE序列划分模式与感知划分指标PI关系图}
    \label{fig:jnd-part-PI-example}
   \end{figure}
+
+	综合分析10个1080p游戏序列，取阈值T为非划分命中率大于50\%的值来均衡加速比与bdrate的损失。另外，考虑到量化参数对块划分的影响，不同QP下应设定不同的阈值PT来提高算法性能。在较小的QP下，视频编码会分配更多的码率，通过更仔细的搜索与块划分来得到更好的重建质量，提前终止划分的感知划分指标PI的阈值PT也相对设定更小。最终的阈值T选择如表\ref{tab:av1-jnd-part-th}所示。
 
   \begin{table}[!hpt]
     \renewcommand{\arraystretch}{0.9}
@@ -396,19 +419,24 @@
   % 介绍md_stage里面的搜索遍历结构 mds
   如前述章节\ref{sec:pd-md}，SVT-AV1使用分阶段决策的方法，包括分阶段分区决策（PD）与分阶段模式选择（MD)，在每个MD阶段中，会按照MD的ZigZag扫描方式递归遍历所有划分块的方式，并按照RDCOST的值比较当前块划分与非划分的花费，决策当前块是否划分。利用我们得到的感知划分指标PI，可以在当前块的PI低于一定阈值时，跳过该块的下一深度划分搜索，如\ref{fig:jnd-part-PI-alg}所示。
 
-  需要说明的是，因为本文对SVT-AV1的优化是基于其编码器最快预设，在最快预设下，部分AV1的特性被关闭，在块划分上，仅支持最深到$8 \times 8$的正方形划分。
-
   \begin{figure}[!htp]
     \centering
-    \includegraphics[width=0.6\textwidth]{jnd-fast-alg.pdf}
+    \resizebox{0.6\textwidth}{!}{\input{figure/jnd-fast-alg.tex}}
     \caption{感知优化的超级块划分提前终止算法流程图}
-   \label{fig:jnd-part-PI-alg}
+    \label{fig:jnd-part-PI-alg}
   \end{figure}
+
+  需要说明的是，因为本文对SVT-AV1的优化是基于其编码器最快预设，在最快预设下，部分AV1的特性被关闭，在块划分上，仅支持最深到$8 \times 8$的正方形划分。
+
+  \subsubsection{调整md-stage进一步优化算法}
+  如图\ref{fig:md}所示，SVT-AV1在每个PD阶段中包含多个模式选择MD阶段，在每个MD阶段中会使用各类预测工具与性能指标对各个候选模式进行评估，只留下性能最好的一部分候选，在下一个MD阶段中继续竞争。理论上，多MD阶段决策的最终优化目标是RDO，因为直接计算RDO的计算量较高，在前期的MD阶段中，会使用一些快速算法替代，以牺牲准确性的前提减少了计算量，在最后的MD阶段会使用完整的RDO计算每个候选的RDCOST。在前期快速算法评估下性能较好的候选在完整RDO的评估下的性能可能较差，因此每个MD阶段需要留下一定数量的候选，以防止错失最终性能较好的候选。
+
+  基于JND感知阈值，可以对各阶段的md-stage保留数量做进一步调整以减小计算量。JND感知阈值较高的区域，人眼视觉系统对其失真的敏感度较低，可以适当减小保留的候选数量\texttt{md-stage-count}，即使错过最优的候选对视觉效果的影响也比较低。
 
 
   \subsection{JND计算的向量加速}
 
-  经过测试，在原始像素级JND模型上计算单帧1080p图像所需的时间超过75ms，对于低延迟编码而言，这个时间是不可接受的，因此将像素级模型简化为块级模型，使用块级JND模型可以有效减少JND模型的计算量，只需3.4ms左右即可完成一帧的计算，最后，应用SIMD后，可以再度加速JND模型的运算速度，只需要1.7ms就可以完成对一帧图像的计算。
+  经过测试，在原始像素级JND模型上计算单帧1080p图像所需的时间超过75ms，对于低延迟编码而言，这个时间是不可接受的，因此将像素级模型简化为块级模型是必要的，使用块级JND模型可以有效减少JND模型的计算量，只需3.4ms左右即可完成一帧的计算，最后，应用SIMD后，可以在此基础上再加速50\%的JND模型运算速度，只需要1.7ms就可以完成对一帧图像的计算。
 
   \begin{table}[!hpt]
     \renewcommand{\arraystretch}{0.9}
@@ -418,7 +446,7 @@
     \begin{tabular}{lccc} \toprule
       模型 & ASM & 时间 &时间比  \\ \midrule
       像素级JND模型 & C   & $>75$ms & 100\% \\
-      块级JND模型   & SSE & $\sim 3.4$ms & 4.53\% \\
+      块级JND模型   & C & $\sim 3.4$ms & 4.53\% \\
       块级JND模型   & SSE & $\sim 1.7$ms & 2.27\%\\ \bottomrule
     \end{tabular}
   \end{table}
@@ -426,6 +454,7 @@
   为了进一步加速JND部分的计算，对背景亮度计算块和亮度方差使用SIMD进行加速，C代码与intrinsic代码如下。使用SIMD可以拆开C代码中的循环，每次读入块中一行数据，一个指令对8个像素的亮度进行计算。
 
   \begin{codeblock}[language=C]
+/* c code */
 uint32_t compute_bg_c(uint8_t *input_samples,
                         uint32_t input_stride,
                         uint32_t input_area_width,
@@ -442,39 +471,42 @@ uint32_t compute_bg_c(uint8_t *input_samples,
     }
     return bg >> 7;
 }
+/* sse4 intrinsic code */
 uint32_t compute_bg8x8_sse4_intrin(
 uint8_t *input_samples,
 uint32_t input_stride,
 uint32_t input_area_width,
 uint32_t input_area_height)
 {
-    __m128i xmm1, xmm2, xmm3, xmm4, xmm_sum1, xmm_sum2, k1, k2, k3, k4;
+    __m128i xmm1, xmm2, xmm3, xmm4, xmm_sum, k1, k2, k3, k4;
     k1 = _mm_set_epi16(1, 1, 1, 2, 2, 1, 1, 1);
     k2 = _mm_set_epi16(1, 2, 2, 3, 3, 2, 2, 1);
     k3 = _mm_set_epi16(1, 2, 0, 3, 3, 0, 2, 1);
     k4 = _mm_set_epi16(1, 3, 3, 5, 5, 3, 3, 1);
-    xmm1 = _mm_mullo_epi16(k1, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples))));
-    xmm2 = _mm_mullo_epi16(k2, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + input_stride))));
-    xmm3 = _mm_mullo_epi16(k3, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 2 * input_stride))));
-    xmm4 = _mm_mullo_epi16(k4, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 3 * input_stride))));
-    xmm1     = _mm_hadd_epi16(xmm1, xmm2);
-    xmm3     = _mm_hadd_epi16(xmm3, xmm4);
-    xmm_sum1 = _mm_hadd_epi16(xmm1, xmm3);
+    xmm1     = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples)));
+    xmm2     = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + input_stride)));
+    xmm3     = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 2 * input_stride)));
+    xmm4     = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 3 * input_stride)));
     input_samples += 4 * input_stride;
-    xmm1 = _mm_mullo_epi16(k4, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples))));
-    xmm2 = _mm_mullo_epi16(k3, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + input_stride))));
-    xmm3 = _mm_mullo_epi16(k2, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 2 * input_stride))));
-    xmm4 = _mm_mullo_epi16(k1, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 3 * input_stride))));
+    xmm4     = _mm_add_epi16(xmm4, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples))));
+    xmm3     = _mm_add_epi16(xmm3, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + input_stride))));
+    xmm2     = _mm_add_epi16(xmm2, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 2 * input_stride))));
+    xmm1     = _mm_add_epi16(xmm1, _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)(input_samples + 3 * input_stride))));
+    xmm1     = _mm_mullo_epi16(k1, xmm1);
+    xmm2     = _mm_mullo_epi16(k2, xmm2);
+    xmm3     = _mm_mullo_epi16(k3, xmm3);
+    xmm4     = _mm_mullo_epi16(k4, xmm4);
+
     xmm1     = _mm_hadd_epi16(xmm1, xmm2);
     xmm3     = _mm_hadd_epi16(xmm3, xmm4);
-    xmm_sum2 = _mm_hadd_epi16(xmm1, xmm3);
-    xmm_sum2 = _mm_hadd_epi16(xmm_sum1, xmm_sum2);
-    xmm_sum2 = _mm_hadd_epi16(xmm_sum2, xmm_sum2);
-    xmm_sum2 = _mm_hadd_epi16(xmm_sum2, xmm_sum2);
-    xmm_sum2 = _mm_hadd_epi16(xmm_sum2, xmm_sum2);
+    xmm_sum = _mm_hadd_epi16(xmm1, xmm3);
+    xmm_sum = _mm_hadd_epi16(xmm_sum, xmm_sum);
+    xmm_sum = _mm_hadd_epi16(xmm_sum, xmm_sum);
+    xmm_sum = _mm_hadd_epi16(xmm_sum, xmm_sum);
     (void)input_area_width;
     (void)input_area_height;
-    return (uint32_t)_mm_cvtsi128_si32(xmm_sum2) >> 23;
+
+    return (uint32_t)_mm_cvtsi128_si32(xmm_sum) >> 23;
 }
   \end{codeblock}
   \subsection{实验结果与分析}
@@ -521,15 +553,14 @@ uint32_t input_area_height)
     \end{tabular}
   \end{table}
 
-  实验结果使用两种图像质量评价指标来评估算法性能，分别是视频编码常用的客观质量评价指标 PSNR 和与主观评估一致性较高的 SSIM 指标。
-
   \subsubsection{实验结果分析}
 
+  对算法性能的评估通过测试两种图像质量评价指标完成，分别是峰值信噪比PSNR指标和与结构相似度SSIM指标。
   对算法性能的评估分为两点：
 
   \begin{enumerate}[label=\arabic*)]
     \item 使用提前终止划分的快速算法带来的编码复杂度降低，通过编码时间节省比例表现；
-    \item 算法导致的编码性能下降，通过比特率与PSNR、SSIM综合分析BDRATE表现。
+    \item 算法导致的编码性能下降，通过比特率与峰值信噪比PSNR指标、结构相似度SSIM指标综合分析BDRATE表现。
   \end{enumerate}
 
   表\ref{tab:av1-jnd-part-AI}、\ref{tab:av1-jnd-part-ldp}分别是在All Intra、Low Delay P预测结构下的实验结果，表\ref{tab:av1-jnd-part-AI-md-stage}是在All Intra预测结构加上调整md\_stage得到的实验结果。
@@ -545,7 +576,6 @@ uint32_t input_area_height)
   需要注意的是，本算法以SVT-AV1编码器的最快预设为基础实现，SVT-AV1本身已经实现了一些用于块划分的快速算法。本算法的编码时间减少量与BDRATE增加量成对抗关系，若选取更激进的感知划分指标阈值，将会以损失更多BDRATE的代价来减少更多的编码时间；同理，若选取更保守的感知划分指标阈值，BDRATE的增加将会减少，但在编码时间上得到的增益也会减小。
 
 
-  % TODO 考虑补充两个序列的测试以填充页面 -- 补充的两个序列确实效果很差，不加性能好一点
   \begin{table}[!hpt]
     \renewcommand{\arraystretch}{0.9}
     \caption{JND快速编码测试结果ALL Intra}
@@ -566,7 +596,7 @@ uint32_t input_area_height)
       & 31 & -17.37\% & +0.02\% & -0.11 & -0.00044 &  & \\ \cline{2-6}
       & 39 & -9.68\% & -0.05\% & -0.07 & -0.00046 &  & \\ \cline{2-6}
       & 47 & -9.42\% & -0.03\% & -0.05 & -0.00041 &  & \\ \hline
-      \multirow{4}*{FALLOUT4} & 23 & -13.42\% & +0.55\% & -0.05 & -0.00009 & \multirow{4}*{+0.91\%} & \multirow{4}*{+1.15\%} \\ \cline{2-6}
+      \multirow{4}*{Fallout4} & 23 & -13.42\% & +0.55\% & -0.05 & -0.00009 & \multirow{4}*{+0.91\%} & \multirow{4}*{+1.15\%} \\ \cline{2-6}
       & 31 & -13.43\% & +0.23\% & -0.05 & -0.00016 &  & \\ \cline{2-6}
       & 39 & -10.32\% & +0.11\% & -0.04 & -0.00021 &  & \\ \cline{2-6}
       & 47 & -12.82\% & +0.06\% & -0.03 & -0.00021 &  & \\ \hline
@@ -574,7 +604,7 @@ uint32_t input_area_height)
       & 31 & -21.02\% & +0.05\% & -0.03 & -0.00010 &  & \\ \cline{2-6}
       & 39 & -9.55\% & -0.01\% & -0.03 & -0.00015 &  & \\ \cline{2-6}
       & 47 & -16.22\% & -0.02\% & -0.02 & -0.00015 &  & \\ \hline
-      \multirow{4}*{HEARTHSTONE} & 23 & -20.03\% & +0.10\% & -0.01 & -0.00003 & \multirow{4}*{+0.29\%} & \multirow{4}*{+0.63\%} \\ \cline{2-6}
+      \multirow{4}*{Hearthstone} & 23 & -20.03\% & +0.10\% & -0.01 & -0.00003 & \multirow{4}*{+0.29\%} & \multirow{4}*{+0.63\%} \\ \cline{2-6}
       & 31 & -17.56\% & +0.04\% & -0.02 & -0.00006 &  & \\ \cline{2-6}
       & 39 & -17.02\% & +0.04\% & -0.02 & -0.00009 &  & \\ \cline{2-6}
       & 47 & -9.94\% & +0.01\% & -0.02 & -0.00010 &  & \\ \hline
@@ -620,7 +650,7 @@ uint32_t input_area_height)
       & 31 & -6.41\% & +0.29\% & -0.06 & -0.00068 &  & \\ \cline{2-6}
       & 39 & -7.82\% & +0.21\% & -0.06 & -0.00092 &  & \\ \cline{2-6}
       & 47 & -10.69\% & +0.16\% & -0.03 & -0.00079 &  & \\ \hline
-      \multirow{4}*{FALLOUT4} & 23 & -5.75\% & +0.35\% & -0.04 & -0.00024 & \multirow{4}*{+1.09\%} & \multirow{4}*{+1.92\%} \\ \cline{2-6}
+      \multirow{4}*{Fallout4} & 23 & -5.75\% & +0.35\% & -0.04 & -0.00024 & \multirow{4}*{+1.09\%} & \multirow{4}*{+1.92\%} \\ \cline{2-6}
       & 31 & -8.01\% & +0.23\% & -0.03 & -0.00029 &  & \\ \cline{2-6}
       & 39 & -9.70\% & +0.07\% & -0.03 & -0.00041 &  & \\ \cline{2-6}
       & 47 & -10.98\% & +0.25\% & -0.02 & -0.00045 &  & \\ \hline
@@ -628,7 +658,7 @@ uint32_t input_area_height)
       & 31 & -11.10\% & +1.15\% & -0.05 & -0.00042 &  & \\ \cline{2-6}
       & 39 & -10.55\% & +0.38\% & -0.03 & -0.00048 &  & \\ \cline{2-6}
       & 47 & -10.16\% & +0.12\% & -0.04 & -0.00054 &  & \\ \hline
-      \multirow{4}*{HEARTHSTONE} & 23 & -10.97\% & -0.52\% & -0.03 & -0.00006 & \multirow{4}*{+0.42\%} & \multirow{4}*{+0.95\%} \\ \cline{2-6}
+      \multirow{4}*{Hearthstone} & 23 & -10.97\% & -0.52\% & -0.03 & -0.00006 & \multirow{4}*{+0.42\%} & \multirow{4}*{+0.95\%} \\ \cline{2-6}
       & 31 & -10.41\% & +0.21\% & -0.01 & -0.00006 &  & \\ \cline{2-6}
       & 39 & -10.33\% & +0.25\% & -0.02 & -0.00008 &  & \\ \cline{2-6}
       & 47 & -9.43\% & +0.07\% & -0.02 & -0.00013 &  & \\ \hline
@@ -674,7 +704,7 @@ uint32_t input_area_height)
       & 31 & -34.28\% & +0.14\% & -0.13 & -0.00045 &  & \\ \cline{2-6}
       & 39 & -27.65\% & -0.05\% & -0.09 & -0.00054 &  & \\ \cline{2-6}
       & 47 & -27.67\% & -0.06\% & -0.07 & -0.00055 &  & \\ \hline
-      \multirow{4}*{FALLOUT4} & 23 & -29.81\% & +0.89\% & -0.07 & -0.00011 & \multirow{4}*{+1.53\%} & \multirow{4}*{+1.82\%} \\ \cline{2-6}
+      \multirow{4}*{Fallout4} & 23 & -29.81\% & +0.89\% & -0.07 & -0.00011 & \multirow{4}*{+1.53\%} & \multirow{4}*{+1.82\%} \\ \cline{2-6}
       & 31 & -29.64\% & +0.50\% & -0.07 & -0.00021 &  & \\ \cline{2-6}
       & 39 & -22.24\% & +0.38\% & -0.07 & -0.00030 &  & \\ \cline{2-6}
       & 47 & -23.67\% & +0.34\% & -0.06 & -0.00037 &  & \\ \hline
@@ -682,7 +712,7 @@ uint32_t input_area_height)
       & 31 & -32.79\% & +0.07\% & -0.06 & -0.00018 &  & \\ \cline{2-6}
       & 39 & -26.01\% & -0.03\% & -0.06 & -0.00029 &  & \\ \cline{2-6}
       & 47 & -31.04\% & -0.03\% & -0.05 & -0.00035 &  & \\ \hline
-      \multirow{4}*{HEARTHSTONE} & 23 & -35.88\% & +0.41\% & -0.03 & -0.00006 & \multirow{4}*{+0.81\%} & \multirow{4}*{+1.37\%} \\ \cline{2-6}
+      \multirow{4}*{Hearthstone} & 23 & -35.88\% & +0.41\% & -0.03 & -0.00006 & \multirow{4}*{+0.81\%} & \multirow{4}*{+1.37\%} \\ \cline{2-6}
       & 31 & -31.95\% & +0.24\% & -0.05 & -0.00011 &  & \\ \cline{2-6}
       & 39 & -27.62\% & +0.24\% & -0.05 & -0.00018 &  & \\ \cline{2-6}
       & 47 & -25.36\% & +0.22\% & -0.04 & -0.00020 &  & \\ \hline
@@ -710,29 +740,32 @@ uint32_t input_area_height)
 
   \subsubsection{实验结果主观评估}
 
-  图\ref{fig:dota2-part}展示了在DOTA2序列上，原始算法与所提算法的超级块划分对比图，其中图\ref{fig:dota2-origin-part}展示了SVT-AV1原始算法的超级块划分，图\ref{fig:dota2-jnd-part}展示了应用基于JND的快速划分算法后的超级块划分效果。对比发现，在纹理简单、一致性较高的区域，应用了所提算法后，更倾向于划分较大的块；对于纹理复杂的区域，二者的划分比较一致，均有细致的分块。
+  图\ref{fig:dota2-part}展示了在DOTA2序列上，原始算法与所提算法的超级块划分对比图，其中图\ref{fig:dota2-origin-part}展示了SVT-AV1原始算法的超级块划分，图\ref{fig:dota2-jnd-part}展示了应用基于JND的快速划分算法后的超级块划分效果，图\ref{fig:dota2-md-part}展示了基于JND调整md-stage的快速划分算法后的超级块划分效果。对比发现，在纹理简单、一致性较高的区域，应用了所提算法后，更倾向于划分较大的块；对于纹理复杂的区域，二者的划分比较一致，均有细致的分块。
 
   \begin{figure}[!hbtp]
+    \setlength\abovecaptionskip{-0.05cm}
     \centering
     \subcaptionbox{原始算法超级块划分图\label{fig:dota2-origin-part}}
-                    [\textwidth]{\includegraphics[width=\textwidth]{dota2_origin_partition.png}}
-    \vspace{0.5cm}
-
-    \subcaptionbox{所提算法超级块划分图\label{fig:dota2-jnd-part}}
-                    [\textwidth]{\includegraphics[width=\textwidth]{dota2_jnd_partition.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_origin_partition.png}}
+    \subcaptionbox{JND优化快速算法超级块划分图\label{fig:dota2-jnd-part}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_jnd_partition.png}}
+    \subcaptionbox{md-stage调整的JND优化快速算法超级块划分图\label{fig:dota2-md-part}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_md_partition.png}}
     \caption{原始算法与所提算法的超级块划分对比图}
     \label{fig:dota2-part}
   \end{figure}
 
-  图\ref{fig:dota2-decode}展示了在DOTA2序列上，原始算法与所提算法的解码图像对比，其中图\ref{fig:dota2-origin-dec}展示了SVT-AV1原始算法的解码图像,图\ref{fig:dota2-jnd-dec}展示了应用基于JND的快速划分算法后的解码图像。对比发现，使用所提算法对主观质量基本没有影响。
+  图\ref{fig:dota2-decode}展示了在DOTA2序列上，原始算法与所提算法的解码图像对比，其中图\ref{fig:dota2-origin-dec}展示了SVT-AV1原始算法的解码图像，图\ref{fig:dota2-jnd-dec}展示了应用基于JND的快速划分算法后的解码图像，图\ref{fig:dota2-md-dec}展示了应用基于JND调整md-stage的快速划分算法后的解码图像。对比发现，使用所提算法对主观质量基本没有影响。
 
   \begin{figure}[!hbtp]
+    \setlength\abovecaptionskip{-0.05cm}
     \centering
     \subcaptionbox{原始算法解码图像\label{fig:dota2-origin-dec}}
-                    [\textwidth]{\includegraphics[width=\textwidth]{dota2_origin_decode.png}}
-    \vspace{0.5cm}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_origin_decode.png}}
     \subcaptionbox{所提算法解码图像\label{fig:dota2-jnd-dec}}
-                    [\textwidth]{\includegraphics[width=\textwidth]{dota2_jnd_decode.png}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_jnd_decode.png}}
+    \subcaptionbox{md-stage调整的JND优化快速算法解码图像\label{fig:dota2-md-dec}}
+                    [\textwidth]{\includegraphics[width=0.885\textwidth]{dota2_md_dec.png}}
     \caption{原始算法与所提算法的解码对比图}
     \label{fig:dota2-decode}
   \end{figure}
@@ -740,4 +773,4 @@ uint32_t input_area_height)
   \section{本章小结}
   本章阐述了对于SVT-AV1编码器的低延迟优化工作。首先简要介绍了SVT-AV1编码器的架构、其系统资源管理器的原理、SVT架构中的三重并行与多阶段分区、模式选择决策。然后，介绍了对于SVT-AV1架构的编码延迟profile工具，该工具对后续的优化方向与测试结果起指导作用。另外，对于SVT-AV1还做了RESOURCE过程中的EOS优化，解决了EOS机制导致的1帧输入延迟；启用分tile优化时的竖向切分以降低编码延迟。
 
-  本章还提出了基于JND的超级块快速划分算法。首先综合考虑视觉模式复杂度、亮度适应性和空间对比度掩蔽等多种视觉特性，使用以 NAMM 模型的非线性组合模型为基础的多维 JND 感知阈值模型。通过对 JND 感知阈值与超级块划分结构特性进行分析，提出了与超级块划分结果相关的感知划分指标，并根据感知划分指标在twitch的游戏视频序列中的统计特性确定超级块提前终止划分的阈值，根据该阈值实现超级块划分的提前终止，从而跳过了大量不必要的搜索过程，有效降低编码时间，减少大量的复杂度。实验结果表明，在SVT-AV1的最快编码预设的基础上，在损失少量编码性能的前提下，本章所提出的超级块快速划分算法能够有效减少SVT-AV1的编码复杂度，从而降低SVT-AV1的编码延迟。
+  本章还提出了基于JND的超级块快速划分算法。首先介绍了人眼视觉特性，包括亮度自适应性、视觉掩蔽效应和视觉注意机制，介绍了像素级JND模型的提出，以及根据像素级JND模型优化得到的块级JND模型。对JND感知阈值与AV1超级块划分结果进行统计分析，总结得到了与块划分相关的感知划分指标，并根据感知划分指标在twitch的游戏视频序列中的统计特性，分析确定了块划分提前终止划分的阈值。根据该阈值实现块划分时的提前终止，跳过了大量的搜索过程，减少大量编码复杂度，降低了编码时间。实验结果表明，在SVT-AV1的最快编码预设的基础上，在损失少量编码性能的前提下，本章所提出的超级块快速划分算法能够有效减少SVT-AV1的编码复杂度，从而降低SVT-AV1的编码延迟。

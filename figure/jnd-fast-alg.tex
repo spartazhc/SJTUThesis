@@ -1,0 +1,18 @@
+\begin{tikzpicture}[node distance=2cm]
+    \node (input) [startstop] {待划分超级块};
+    \node (bsize) [decision, below of=input] {$\mathrm{bsize} \geq 16\mathrm{x}16$};
+    \node (PI) [decision, below of=bsize, yshift=-0.8cm] {$\mathrm{PI} < \mathrm{PT_{bsize}}$};
+    \node (skip) [process, right of=PI, xshift=3cm] {跳过下一深度划分};
+    \node (RDO) [process, below of=PI, yshift=-0.6cm] {RDO};
+    \node (end) [startstop, right of=RDO, xshift=3cm] {划分结束};
+
+    %连接具体形状
+    \draw [arrow](input) -- (bsize);
+    \draw [arrow](bsize) -- node[left] {Yes} (PI);
+    \draw [arrow](bsize) -- ($(bsize.west) + (-1.4,0)$) node[above right] {No} |- (RDO);
+    \draw [arrow](PI) -- node[left] {No} (RDO);
+    \draw [arrow](PI) -- node[above]{Yes} (skip);
+    \draw [arrow](skip) |- (bsize);
+    \draw [arrow](RDO) -- (end);
+
+\end{tikzpicture}

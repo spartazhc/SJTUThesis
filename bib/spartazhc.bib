@@ -1,0 +1,516 @@
+
+@inproceedings{akyaziComparisonCompressionEfficiency2018,
+  title = {Comparison of {{Compression Efficiency}} between {{HEVC}}/{{H}}.265, {{VP9}} and {{AV1}} Based on {{Subjective Quality Assessments}}},
+  booktitle = {2018 {{Tenth International Conference}} on {{Quality}} of {{Multimedia Experience}} ({{QoMEX}})},
+  author = {Akyazi, Pinar and Ebrahimi, Touradj},
+  date = {2018-05},
+  pages = {1--6},
+  publisher = {{IEEE}},
+  location = {{Cagliari}},
+  doi = {10.1109/QoMEX.2018.8463294},
+  eventtitle = {2018 {{Tenth International Conference}} on {{Quality}} of {{Multimedia Experience}} ({{QoMEX}})},
+  isbn = {978-1-5386-2605-4}
+}
+
+@report{AOMAV1Codec,
+  title = {{{AOM AV1}} Codec Mapping in {{Matroska}}/{{WebM}}}
+}
+
+@report{audio-videotransportworkinggroupRTPTransportProtocol1996,
+  title = {{{RTP}}: {{A Transport Protocol}} for {{Real}}-{{Time Applications}}},
+  shorttitle = {{{RTP}}},
+  author = {{Audio-Video Transport Working Group} and Schulzrinne, H. and Casner, S. and Frederick, R. and Jacobson, V.},
+  date = {1996-01},
+  pages = {RFC1889},
+  institution = {{RFC Editor}},
+  doi = {10.17487/rfc1889},
+  langid = {english},
+  number = {RFC1889}
+}
+
+@software{AV1SourceCode2020,
+  title = {{{AV1}} Source Code in the {{Alliance}} for {{Open Media Git}} Repository},
+  date = {2020-05-11}
+}
+
+@inproceedings{baiSaliencyBasedRate2016,
+  title = {Saliency Based Rate Control Scheme for High Efficiency Video Coding},
+  booktitle = {2016 {{Asia}}-{{Pacific Signal}} and {{Information Processing Association Annual Summit}} and {{Conference}} ({{APSIPA}})},
+  author = {Bai, Lixun and Song, Li and Xie, Rong and Xie, Jianfeng and Chen, M.},
+  date = {2016-12},
+  pages = {1--6},
+  publisher = {{IEEE}},
+  location = {{Jeju, South Korea}},
+  doi = {10.1109/APSIPA.2016.7820898},
+  eventtitle = {2016 {{Asia}}-{{Pacific Signal}} and {{Information Processing Association Annual Summit}} and {{Conference}} ({{APSIPA}})},
+  isbn = {978-988-14768-2-1}
+}
+
+@report{Bitmovinvideodeveloperreport2019Pdf2019,
+  title = {Bitmovin-Video-Developer-Report-2019.Pdf},
+  date = {2019},
+  institution = {{Bitmovin}}
+}
+
+@article{borjiStateoftheArtVisualAttention2013,
+  title = {State-of-the-{{Art}} in {{Visual Attention Modeling}}},
+  author = {Borji, Ali and Itti, Laurent},
+  date = {2013-01},
+  journaltitle = {IEEE Trans. Pattern Anal. Mach. Intell.},
+  volume = {35},
+  pages = {185--207},
+  issn = {0162-8828, 2160-9292},
+  doi = {10.1109/TPAMI.2012.89},
+  number = {1}
+}
+
+@inproceedings{chenOverviewCoreCoding2018,
+  title = {An {{Overview}} of {{Core Coding Tools}} in the {{AV1 Video Codec}}},
+  booktitle = {2018 {{Picture Coding Symposium}} ({{PCS}})},
+  author = {Chen, Yue and Murherjee, Debargha and Han, Jingning and Grange, Adrian and Xu, Yaowu and Liu, Zoe and Parker, Sarah and Chen, Cheng and Su, Hui and Joshi, Urvang and Chiang, Ching-Han and Wang, Yunqing and Wilkins, Paul and Bankoski, Jim and Trudeau, Luc and Egge, Nathan and Valin, Jean-Marc and Davies, Thomas and Midtskogen, Steinar and Norkin, Andrey and de Rivaz, Peter},
+  date = {2018-06},
+  pages = {41--45},
+  publisher = {{IEEE}},
+  location = {{San Francisco, CA}},
+  doi = {10.1109/PCS.2018.8456249},
+  abstract = {AV1 is an emerging open-source and royalty-free video compression format, which is jointly developed and finalized in early 2018 by the Alliance for Open Media (AOMedia) industry consortium. The main goal of AV1 development is to achieve substantial compression gain over state-of-the-art codecs while maintaining practical decoding complexity and hardware feasibility. This paper provides a brief technical overview of key coding techniques in AV1 along with preliminary compression performance comparison against VP9 and HEVC.},
+  eventtitle = {2018 {{Picture Coding Symposium}} ({{PCS}})},
+  isbn = {978-1-5386-4160-6},
+  langid = {english},
+  options = {useprefix=true}
+}
+
+@inproceedings{chiangMultiPassCodingMode2019,
+  title = {A {{Multi}}-{{Pass Coding Mode Search Framework For AV1 Encoder Optimization}}},
+  booktitle = {2019 {{Data Compression Conference}} ({{DCC}})},
+  author = {Chiang, Ching-Han and Han, Jingning and Xu, Yaowu},
+  date = {2019-03},
+  pages = {458--467},
+  publisher = {{IEEE}},
+  location = {{Snowbird, UT, USA}},
+  doi = {10.1109/DCC.2019.00054},
+  abstract = {The AV1 codec recently released by the Alliance of Open Media provides nearly 30\% BDrate reduction over its predecessor VP9. It substantially extends the available coding block sizes and supports a wide range of prediction modes. There are also a large variety of transform kernel types and sizes. The combination provides an extremely wide range of flexible coding options. To translate such flexibility into compression efficiency, the encoder needs to conduct an extensive search over the space of coding modes. Optimization of the encoder complexity and compression efficiency trade-off is critical to productionizing AV1. Many research efforts have been devoted to devising feature space based pruning methods ranging from decision rules based on some simple observations to more complex neural network models. A multi-pass coding mode search framework is proposed in this work to provide a structural approach to reduce the search volume. It decomposes the original high dimensional space search into cascaded stages of lower dimensional space searches. To retain a near optimal search result, the scheme departs from conventional dimension reduction approach in which one retains a single winner at each stage, and uses that winner for the next stage (dimension). Instead, this framework retains a subset of the states that are the most likely winners at each stage, which are then fed into the next stage to find the next subset of winners. The subset size at each stage is determined by the likelihood that the optimal route will be captured in the current stage. Changing this likelihood parameter tunes the encoder for speed and compression performance trade-off. This framework can integrate with most existing feature based methods at its various stages. The framework provides 60\% encoding time reduction at the expense of 0.6\% compression loss in libaom AV1 encoder.},
+  eventtitle = {2019 {{Data Compression Conference}} ({{DCC}})},
+  isbn = {978-1-72810-657-1},
+  langid = {english}
+}
+
+@article{chun-hsienchouPerceptuallyTunedSubband1995,
+  title = {A Perceptually Tuned Subband Image Coder Based on the Measure of Just-Noticeable-Distortion Profile},
+  author = {{Chun-Hsien Chou} and {Yun-Chin Li}},
+  date = {1995-12},
+  journaltitle = {IEEE Trans. Circuits Syst. Video Technol.},
+  volume = {5},
+  pages = {467--476},
+  issn = {10518215},
+  doi = {10.1109/76.475889},
+  number = {6}
+}
+
+@report{concolatoAV1CodecISO,
+  title = {{{AV1 Codec ISO Media File Format Binding}}},
+  author = {Concolato, Cyril and Finegan, Tom}
+}
+
+@article{correaParetoBasedMethodHigh2016,
+  title = {Pareto-{{Based Method}} for {{High Efficiency Video Coding With Limited Encoding Time}}},
+  author = {Correa, Guilherme and Assuncao, Pedro A. and Agostini, Luciano Volcan and da Silva Cruz, Luis A.},
+  date = {2016-09},
+  journaltitle = {IEEE Trans. Circuits Syst. Video Technol.},
+  volume = {26},
+  pages = {1734--1745},
+  issn = {1051-8215, 1558-2205},
+  doi = {10.1109/TCSVT.2015.2469533},
+  abstract = {Several different methods have been investigated in recent years, aiming at computational complexity reduction and scaling of High Efficiency Video Coding (HEVC) software implementations. However, maintaining the encoding time per frame or group of pictures (GOPs) below an adjustable upper bound is still an open research issue. A solution for this problem is devised in this paper based on a set of Pareto-efficient encoding configurations, identified through rate-distortion-complexity analysis. The proposed method combines a medium-granularity encoding time control with a fine-granularity encoding time control to accurately limit the HEVC encoding time below a predefined target for each GOP. It is shown that the encoding time can be kept below a desired target for a wide range of encoding time reductions, e.g., up to 90\% in comparison with the original encoder. The results also show that compression efficiency loss (Bjøntegaard delta-rate) varies from negligible (0.16\%) to moderate (9.83\%) in the extreme case of 90\% computational complexity reduction.},
+  langid = {english},
+  number = {9},
+  options = {useprefix=true}
+}
+
+@article{correaPerformanceComputationalComplexity2012,
+  title = {Performance and {{Computational Complexity Assessment}} of {{High}}-{{Efficiency Video Encoders}}},
+  author = {Correa, Guilherme and Assuncao, Pedro and Agostini, Luciano and da Silva Cruz, Luis A.},
+  date = {2012-12},
+  journaltitle = {IEEE Trans. Circuits Syst. Video Technol.},
+  volume = {22},
+  pages = {1899--1909},
+  issn = {1051-8215, 1558-2205},
+  doi = {10.1109/TCSVT.2012.2223411},
+  abstract = {This paper presents a performance evaluation study of coding efficiency versus computational complexity for the forthcoming High Efficiency Video Coding (HEVC) standard. A thorough experimental investigation was carried out to identify the tools that most affect the encoding efficiency and computational complexity of the HEVC encoder. A set of 16 different encoding configurations was created to investigate the impact of each tool, varying the encoding parameter set and comparing the results with a baseline encoder. This paper shows that, even though the computational complexity increases monotonically from the baseline to the most complex configuration, the encoding efficiency saturates at some point. Moreover, the results of this paper provide relevant information for implementation of complexity-constrained encoders by taking into account the tradeoff between complexity and coding efficiency. It is shown that low-complexity encoding configurations, defined by careful selection of coding tools, achieve coding efficiency comparable to that of high-complexity configurations.},
+  langid = {english},
+  number = {12},
+  options = {useprefix=true}
+}
+
+@misc{EncoderDesignSVTAV1,
+  title = {Encoder {{Design}} for {{SVT}}-{{AV1}} ({{Scalable Video Technology}} for {{AV1 Encoder}})}
+}
+
+@article{fisherOVERVIEWHTTPADAPTIVE,
+  title = {{{AN OVERVIEW OF HTTP ADAPTIVE STREAMING PROTOCOLS FOR TV EVERYWHRE DELIVERY}}},
+  author = {Fisher, Yuval},
+  pages = {16},
+  abstract = {In this paper we review the advantages of adaptive HTTP streaming and detail its usefulness in delivering content on both managed and unmanaged networks. We review the differences between these protocols and discuss their strengths and weaknesses. Additionally, we’ll give a detailed look at the packaging and delivery mechanisms for TV Everywhere in which we explain the implications for storage, CDN distribution, ad insertion and overall architecture.},
+  langid = {english}
+}
+
+@inproceedings{guoBayesianApproachBlock2018,
+  title = {A {{Bayesian Approach}} to {{Block Structure Inference}} in {{AV1}}-{{Based Multi}}-{{Rate Video Encoding}}},
+  booktitle = {2018 {{Data Compression Conference}}},
+  author = {Guo, Bichuan and Chen, Xinyao and Gu, Jiawen and Han, Yuxing and Wen, Jiangtao},
+  date = {2018-03},
+  pages = {383--392},
+  publisher = {{IEEE}},
+  location = {{Snowbird, UT}},
+  doi = {10.1109/DCC.2018.00047},
+  eventtitle = {2018 {{Data Compression Conference}} ({{DCC}})},
+  isbn = {978-1-5386-4883-4}
+}
+
+@inproceedings{guoqingxiangImprovedAdaptiveQuantization2017,
+  title = {An Improved Adaptive Quantization Method Based on Perceptual {{CU}} Early Splitting for {{HEVC}}},
+  booktitle = {2017 {{IEEE International Conference}} on {{Consumer Electronics}} ({{ICCE}})},
+  author = {{Guoqing Xiang} and {Huizhu Jia} and {Mingyuan Yang} and {Jie Liu} and {Chuang Zhu} and {Yuan Li} and {Xiaodong Xie}},
+  date = {2017},
+  pages = {362--365},
+  publisher = {{IEEE}},
+  location = {{Las Vegas, NV, USA}},
+  doi = {10.1109/ICCE.2017.7889356},
+  eventtitle = {2017 {{IEEE International Conference}} on {{Consumer Electronics}} ({{ICCE}})},
+  isbn = {978-1-5090-5544-9}
+}
+
+@report{InformationTechnologyCoding,
+  title = {Information Technology — {{Coding}} of Audio-Visual Objects — {{Part}} 12: {{ISO}} Base Media File Format},
+  institution = {{International Organization for Standardization}},
+  number = {ISO/IEC 14496-12},
+  type = {Standard}
+}
+
+@report{InformationTechnologyGeneric,
+  title = {Information Technology — {{Generic}} Coding of Moving Pictures and Associated Audio Information — {{Part}} 1: {{Systems}}},
+  shorttitle = {{{ISO}}/{{IEC}} 13818-1:2019},
+  institution = {{International Organization for Standardization}},
+  number = {ISO/IEC 13818-1},
+  type = {Standard}
+}
+
+@article{kimFastInterPredictionBased2019,
+  title = {Fast {{Inter}}-{{Prediction}} Based on {{Decision Trees}} for {{AV1}} Encoding},
+  author = {Kim, Jieon and Blasi, Saverio and Dias, Andre Seixas and Mrak, Marta and Izquierdo, Ebroul},
+  date = {2019-08-29},
+  abstract = {The AOMedia Video 1 (AV1) standard can achieve considerable compression efficiency thanks to the usage of many advanced tools and improvements, such as advanced interprediction modes. However, these come at the cost of high computational complexity of encoder, which may limit the benefits of the standard in practical applications. This paper shows that not all sequences benefit from using all such modes, which indicates that a number of encoder optimisations can be introduced to speed up AV1 encoding. A method based on decision trees is proposed to selectively decide whether to test all inter modes. Appropriate features are extracted and used to perform the decision for each block. Experimental results show that the proposed method can reduce the encoding time on average by 43.4\% with limited impact on the coding efficiency.},
+  archivePrefix = {arXiv},
+  eprint = {1908.11166},
+  eprinttype = {arxiv},
+  keywords = {Electrical Engineering and Systems Science - Image and Video Processing},
+  langid = {english},
+  primaryClass = {eess}
+}
+
+@inproceedings{laudeComparisonJEMAV12018,
+  title = {A {{Comparison}} of {{JEM}} and {{AV1}} with {{HEVC}}: {{Coding Tools}}, {{Coding Efficiency}} and {{Complexity}}},
+  shorttitle = {A {{Comparison}} of {{JEM}} and {{AV1}} with {{HEVC}}},
+  booktitle = {2018 {{Picture Coding Symposium}} ({{PCS}})},
+  author = {Laude, Thorsten and Adhisantoso, Yeremia Gunawan and Voges, Jan and Munderloh, Marco and Ostermann, Jorn},
+  date = {2018-06},
+  pages = {36--40},
+  publisher = {{IEEE}},
+  location = {{San Francisco, CA}},
+  doi = {10.1109/PCS.2018.8456291},
+  eventtitle = {2018 {{Picture Coding Symposium}} ({{PCS}})},
+  isbn = {978-1-5386-4160-6}
+}
+
+@article{laudeComprehensiveVideoCodec2019,
+  title = {A {{Comprehensive Video Codec Comparison}}},
+  author = {Laude, Thorsten and Adhisantoso, Yeremia Gunawan and Voges, Jan and Munderloh, Marco and Ostermann, Jörn},
+  date = {2019},
+  journaltitle = {APSIPA Transactions on Signal and Information Processing},
+  volume = {8},
+  pages = {e30},
+  issn = {2048-7703},
+  doi = {10.1017/ATSIP.2019.23},
+  abstract = {In this paper, we compare the video codecs AV1 (version 1.0.0-2242 from August 2019), HEVC (HM and x265), AVC (x264), the exploration software JEM which is based on HEVC, and the VVC (successor of HEVC) test model VTM (version 4.0 from February 2019) under two fair and balanced configurations: All Intra for the assessment of intra coding and Maximum Coding Efficiency with all codecs being tuned for their best coding efficiency settings. VTM achieves the highest coding efficiency in both configurations, followed by JEM and AV1. The worst coding efficiency is achieved by x264 and x265, even in the placebo preset for highest coding efficiency. AV1 gained a lot in terms of coding efficiency compared to previous versions and now outperforms HM by 24\% BD-Rate gains. VTM gains 5\% over AV1 in terms of BD-Rates. By reporting separate numbers for JVET and AOM test sequences, it is ensured that no bias in the test sequences exists. When comparing only intra coding tools, it is observed that the complexity increases exponentially for linearly increasing coding efficiency.},
+  langid = {english}
+}
+
+@inproceedings{liIntraBlockCopy2018,
+  title = {Intra {{Block Copy}} for {{Screen Content}} in the {{Emerging AV1 Video Codec}}},
+  booktitle = {2018 {{Data Compression Conference}}},
+  author = {Li, Jiahao and Su, Hui and Converse, Alex and Li, Bin and Zhou, Roger and Lin, Bruce and Xu, Jizheng and Lu, Yan and Xiong, Ruiqin},
+  date = {2018-03},
+  pages = {355--364},
+  publisher = {{IEEE}},
+  location = {{Snowbird, UT}},
+  doi = {10.1109/DCC.2018.00044},
+  abstract = {Screen content coding plays an important role in many applications. To meet the growing demands of screen content coding, the emerging AV1 video codec incorporates several coding tools, which are specially designed for screen content utilizing its distinctive characteristics. Among these tools, the intra block copy utilizes the characteristic that repeating patterns frequently occur in screen content. This paper presents the technology of intra block copy in AV1. In particular, to efficiently search the predictor in the reconstructed regions of the current picture, AV1 uses the hash matching method at the encoder side. For the generation of hash table, a bottom-to-up manner is adopted to reduce the redundant computation and then decrease the encoding time. In addition, several constraints are involved to facilitate hardware design. Experimental results demonstrate that the intra block copy in AV1 can bring 27.1\% bitrate saving for screen content. When compared with the non hash-based intra block copy, the hash-based method achieves 12.2\% bitrate saving.},
+  eventtitle = {2018 {{Data Compression Conference}} ({{DCC}})},
+  isbn = {978-1-5386-4883-4},
+  langid = {english}
+}
+
+@article{midtskogenAV1ConstrainedDirectional2017,
+  title = {The {{AV1 Constrained Directional Enhancement Filter}} ({{CDEF}})},
+  author = {Midtskogen, Steinar and Valin, Jean-Marc},
+  date = {2017-10-28},
+  abstract = {This paper presents the constrained directional enhancement filter designed for the AV1 royalty-free video codec. The in-loop filter is based on a non-linear low-pass filter and is designed for vectorization efficiency. It takes into account the direction of edges and patterns being filtered. The filter works by identifying the direction of each block and then adaptively filtering with a high degree of control over the filter strength along the direction and across it. The proposed enhancement filter is shown to improve the quality of the Alliance for Open Media (AOM) AV1 and Thor video codecs in particular in low complexity configurations.},
+  archivePrefix = {arXiv},
+  eprint = {1602.05975},
+  eprinttype = {arxiv},
+  keywords = {Computer Science - Multimedia},
+  langid = {english},
+  primaryClass = {cs}
+}
+
+@inproceedings{norkinFilmGrainSynthesis2018,
+  title = {Film {{Grain Synthesis}} for {{AV1 Video Codec}}},
+  booktitle = {2018 {{Data Compression Conference}}},
+  author = {Norkin, Andrey and Birkbeck, Neil},
+  date = {2018-03},
+  pages = {3--12},
+  publisher = {{IEEE}},
+  location = {{Snowbird, UT}},
+  doi = {10.1109/DCC.2018.00008},
+  abstract = {Film grain is abundant in TV and movie content. It is often part of the creative intent and needs to be preserved while encoding. However, the random nature of film grain is difficult to compress using traditional coding tools. This paper describes a film grain modeling and synthesis algorithm proposed for the AV1 video codec. At the encoder, an autoregressive model of film grain is transmitted relative to a denoised signal, and the film grain strength is modeled as a function of intensity. The corresponding renoising at the decoder is implemented using an efficient block-based approach suitable for use in consumer electronic devices. Preliminary results indicate that the approach can give significant bitrate savings (up to 50\%) on sequences with heavy film grain.},
+  eventtitle = {2018 {{Data Compression Conference}} ({{DCC}})},
+  isbn = {978-1-5386-4883-4},
+  langid = {english}
+}
+
+@report{pantosHTTPLiveStreaming2017,
+  title = {{{HTTP Live Streaming}}},
+  author = {Pantos, R. and May, W.},
+  date = {2017-08},
+  pages = {RFC8216},
+  institution = {{RFC Editor}},
+  doi = {10.17487/RFC8216},
+  langid = {english},
+  number = {RFC8216}
+}
+
+@software{Rav1eGitRepository2020,
+  title = {Rav1e {{Git}} Repository},
+  date = {2020-05-11}
+}
+
+@report{rivazAV1BitstreamDecoding2019,
+  title = {{{AV1 Bitstream}} \& {{Decoding Process Specification}}},
+  author = {Rivaz, Peter and Haughton, Jack},
+  date = {2019-01-19},
+  institution = {{AOMedia}},
+  langid = {english}
+}
+
+@report{RTPPayloadFormat,
+  title = {{{RTP Payload Format For AV1}} (v0.3)}
+}
+
+@report{ScalableVideoTechnology2019,
+  title = {Scalable {{Video Technology}} for the {{Visual Cloud}}},
+  date = {2019-04-19},
+  pages = {15},
+  institution = {{Intel}},
+  langid = {english}
+}
+
+@software{ScalableVideoTechnology2020,
+  title = {Scalable {{Video Technology}} for {{AV1 Encoder}} ({{SVT}}-{{AV1 Encoder}}) {{Git}} Repository},
+  date = {2020-05-11}
+}
+
+@article{schulzrinneRealTimeStreaming,
+  title = {Real {{Time Streaming Protocol}} ({{RTSP}})},
+  author = {Schulzrinne, H. and Rao, A. and R., Lanphier}
+}
+
+@report{schulzrinneRealTimeStreaming1998,
+  title = {Real {{Time Streaming Protocol}} ({{RTSP}})},
+  author = {Schulzrinne, H. and Rao, A. and Lanphier, R.},
+  date = {1998-04},
+  pages = {RFC2326},
+  institution = {{RFC Editor}},
+  doi = {10.17487/rfc2326},
+  langid = {english},
+  number = {RFC2326}
+}
+
+@report{schulzrinneRealTimeStreamingProtocol2016,
+  title = {Real-{{Time Streaming Protocol Version}} 2.0},
+  author = {Schulzrinne, H. and Rao, A. and Lanphier, R. and Westerlund, M. and Stiemerling, M.},
+  date = {2016-12},
+  pages = {RFC7826},
+  institution = {{RFC Editor}},
+  doi = {10.17487/RFC7826},
+  langid = {english},
+  number = {RFC7826}
+}
+
+@report{schulzrinneRTPTransportProtocol2003,
+  title = {{{RTP}}: {{A Transport Protocol}} for {{Real}}-{{Time Applications}}},
+  shorttitle = {{{RTP}}},
+  author = {Schulzrinne, H. and Casner, S. and Frederick, R. and Jacobson, V.},
+  date = {2003-07},
+  pages = {RFC3550},
+  institution = {{RFC Editor}},
+  doi = {10.17487/rfc3550},
+  langid = {english},
+  number = {RFC3550}
+}
+
+@unpublished{shenTwitchTalksVP92019,
+  title = {Twitch {{Talks VP9}}, {{AV1}} and Its {{Five}}-{{Year Encoding Roadmap}}},
+  author = {Shen, Yueshi},
+  date = {2019-04-23},
+  eventtitle = {{{NAB}} 2019}
+}
+
+@inproceedings{spiteriTheoryPracticeImproving2018,
+  title = {From Theory to Practice: Improving Bitrate Adaptation in the {{DASH}} Reference Player},
+  shorttitle = {From Theory to Practice},
+  booktitle = {Proceedings of the 9th {{ACM Multimedia Systems Conference}} on   - {{MMSys}} '18},
+  author = {Spiteri, Kevin and Sitaraman, Ramesh and Sparacio, Daniel},
+  date = {2018},
+  pages = {123--137},
+  publisher = {{ACM Press}},
+  location = {{Amsterdam, Netherlands}},
+  doi = {10.1145/3204949.3204953},
+  abstract = {Modern video streaming uses adaptive bitrate (ABR) algorithms than run inside video players and continually adjust the quality (i.e., bitrate) of the video segments that are downloaded and rendered to the user. To maximize the quality-of-experience of the user, ABR algorithms must stream at a high bitrate with low rebuffering and low bitrate oscillations. Further, a good ABR algorithm is responsive to user and network events and can be used in demanding scenarios such as low-latency live streaming. Recent research papers provide an abundance of ABR algorithms, but fall short on many of the above real-world requirements.},
+  eventtitle = {The 9th {{ACM Multimedia Systems Conference}}},
+  isbn = {978-1-4503-5192-8},
+  langid = {english}
+}
+
+@report{StreamingVideoLatency2019,
+  title = {Streaming {{Video Latency Report Interactive}} 2019.Pdf},
+  date = {2019},
+  institution = {{wowza}}
+}
+
+@article{trowAV1ImplementationPerformance2020,
+  title = {{{AV1}}: {{Implementation}}, {{Performance}}, and {{Applications}}},
+  author = {Trow, Ian},
+  date = {2020},
+  volume = {129},
+  pages = {51--56},
+  doi = {10.5594/JMI.2019.2951827},
+  abstract = {With the finalization of the AVI specification, the Alliance for Open Media (AOM) has set high expectations for it. The prospect of a royalty-free alternative to high efficiency video coding (HEVC) has many supporters in the industry, particularly those seeking a standard for streaming applications that is optimized for over-the-top (OTT) delivery quite excited. Fundamental to AV1’s success will be the transfer of a toolset of efficient software implementations that can deliver the expected performance over existing compression standards within the constraints of future server provision. Efficient implementations of AV1 will require a careful balance between utilizing bespoke processor features to offload demanding processor-intensive functions and the desire to have a platform-agnostic compression standard that can be applied across a wide range of infrastructures. As with all complex compression schemes, realizing a software mapping of the toolset is crucial. This is true for AV1, which, being royalty-free, utilizes algorithms and methods that are different from those used in the Motion Picture Experts Group (MPEG) suite of standards. This article will look at the application challenges facing AV1 and compare its objective performance to that of the HEVC in terms of bitrate efficiency and encode time.},
+  langid = {english}
+}
+
+@article{trudeauPredictingChromaLuma2018,
+  title = {Predicting {{Chroma}} from {{Luma}} in {{AV1}}},
+  author = {Trudeau, Luc N. and Egge, Nathan E. and Barr, David},
+  date = {2018-01-17},
+  abstract = {Chroma from luma (CfL) prediction is a new and promising chroma-only intra predictor that models chroma pixels as a linear function of the coincident reconstructed luma pixels. In this paper, we present the CfL predictor adopted in Alliance Video 1 (AV1), a royaltyfree video codec developed by the Alliance for Open Media (AOM). The proposed CfL distinguishes itself from prior art not only by reducing decoder complexity, but also by producing more accurate predictions. On average, CfL reduces the BD-rate, when measured with CIEDE2000, by 4.87\% for still images and 2.41\% for video sequences.},
+  archivePrefix = {arXiv},
+  eprint = {1711.03951},
+  eprinttype = {arxiv},
+  keywords = {Computer Science - Multimedia},
+  langid = {english},
+  primaryClass = {cs}
+}
+
+@article{wuJustNoticeableDifference2013,
+  title = {Just {{Noticeable Difference Estimation}} for {{Images With Free}}-{{Energy Principle}}},
+  author = {Wu, Jinjian and Shi, Guangming and Lin, Weisi and Liu, Anmin and Qi, Fei},
+  date = {2013-11},
+  journaltitle = {IEEE Trans. Multimedia},
+  volume = {15},
+  pages = {1705--1710},
+  issn = {1520-9210, 1941-0077},
+  doi = {10.1109/TMM.2013.2268053},
+  abstract = {In this paper, we introduce a novel just noticeable difference (JND) estimation model based on the unified brain theory, namely the freeenergy principle. The existing pixel-based JND models mainly consider the orderly factors and always underestimate the JND threshold of the disorderly region. Recent research indicates that the human visual system (HVS) actively predicts the orderly information and avoids the residual disorderly uncertainty for image perception and understanding. Thus, we suggest that there exists disorderly concealment effect which results in high JND threshold of the disorderly region. Beginning with the Bayesian inference, we deduce an autoregressive model to imitate the active prediction of the HVS. Then, we estimate the disorderly concealment effect for the novel JND model. Experimental results confirm that the proposed JND model outperforms the relevant existing ones. Furthermore, we apply the proposed JND model in image compression, and around 15\% of bit rate can be reduced without jeopardizing the perceptual quality.},
+  langid = {english},
+  number = {7}
+}
+
+@article{wuPatternMaskingEstimation2013,
+  title = {Pattern {{Masking Estimation}} in {{Image With Structural Uncertainty}}},
+  author = {Wu, Jinjian and Lin, Weisi and Shi, Guangming and Wang, Xiaotian and Li, Fu},
+  date = {2013-12},
+  journaltitle = {IEEE Trans. on Image Process.},
+  volume = {22},
+  pages = {4892--4904},
+  issn = {1057-7149, 1941-0042},
+  doi = {10.1109/TIP.2013.2279934},
+  number = {12}
+}
+
+@article{xuFreeEnergyPrincipleInspired2016,
+  title = {Free-{{Energy Principle Inspired Video Quality Metric}} and {{Its Use}} in {{Video Coding}}},
+  author = {Xu, Long and Lin, Weisi and Ma, Lin and Zhang, Yongbing and Fang, Yuming and Ngan, King Ngi and Li, Songnan and Yan, Yihua},
+  date = {2016-04},
+  journaltitle = {IEEE Trans. Multimedia},
+  volume = {18},
+  pages = {590--602},
+  issn = {1520-9210, 1941-0077},
+  doi = {10.1109/TMM.2016.2525004},
+  langid = {english},
+  number = {4}
+}
+
+@article{yangJustNoticeableDistortion2005,
+  title = {Just Noticeable Distortion Model and Its Applications in Video Coding},
+  author = {Yang, X.K. and Ling, W.S. and Lu, Z.K. and Ong, E.P. and Yao, S.S.},
+  date = {2005-08},
+  journaltitle = {Signal Processing: Image Communication},
+  volume = {20},
+  pages = {662--680},
+  issn = {09235965},
+  doi = {10.1016/j.image.2005.04.001},
+  langid = {english},
+  number = {7}
+}
+
+@report{zervasVideoStreamingNearZero,
+  title = {Video {{Streaming}} with {{Near}}-{{Zero Latency Using Altera Arria V FPGAs}} and {{Video}} and {{Image Processing Suite Plus}} the {{Right Encoder}}},
+  author = {Zervas, Nikos},
+  pages = {10},
+  langid = {english}
+}
+
+@inproceedings{zhangJustNoticeableDistortionEstimation2005,
+  title = {Just-{{Noticeable Distortion Estimation}} for {{Image Pixels}}},
+  booktitle = {2005 {{IEEE}} 7th {{Workshop}} on {{Multimedia Signal Processing}}},
+  author = {Zhang, X.h. and Lin, W.s. and Xue, P.},
+  date = {2005-10},
+  pages = {1--4},
+  publisher = {{IEEE}},
+  location = {{Shanghai}},
+  doi = {10.1109/MMSP.2005.248671},
+  eventtitle = {2005 {{IEEE}} 7th {{Workshop}} on {{Multimedia Signal Processing}}},
+  isbn = {978-0-7803-9288-5 978-0-7803-9289-2}
+}
+
+@inproceedings{zhaoWavefrontParallelProcessing2018,
+  title = {Wavefront {{Parallel Processing}} for {{AV1 Encoder}}},
+  booktitle = {2018 {{Picture Coding Symposium}} ({{PCS}})},
+  author = {Zhao, Yikai and Wen, Jiangtao},
+  date = {2018-06},
+  pages = {101--105},
+  publisher = {{IEEE}},
+  location = {{San Francisco, CA}},
+  doi = {10.1109/PCS.2018.8456283},
+  abstract = {The emerging AV1 coding standard brings even higher computational complexity than current coding standards, but does not support traditional Wavefront Parallel Processing (WPP) approach due to the lacking of syntax support. In this paper we introduced a novel framework to implement WPP for AV1 encoder that is compatible with current decoder without additional bitstream syntax support, where mode selection is processed in wavefront parallel before entropy encoding and entropy contexts for rate-distortion optimization are predicted. Based on this framework, context prediction algorithms that use same data dependency model as previous works in H.264 and HEVC are implemented. Furthermore, we proposed an optimal context prediction algorithm specifically for AV1. Experimental results showed that our framework with proposed optimal algorithm yields good parallelism and scalability (over 10x speed-up with 16 threads for 4k sequences) with little coding performance loss (less than 0.2\% bitrate increasing).},
+  eventtitle = {2018 {{Picture Coding Symposium}} ({{PCS}})},
+  isbn = {978-1-5386-4160-6},
+  langid = {english}
+}
+
+@inproceedings{zhuJNDbasedPerceptualRate2019,
+  title = {{{JND}}-Based {{Perceptual Rate Distortion Optimization}} for {{AV1 Encoder}}},
+  booktitle = {2019 {{Picture Coding Symposium}} ({{PCS}})},
+  author = {Zhu, Chen and Song, Li and Xie, Rong and Han, Jingning and Xu, Yaowu},
+  date = {2019-11},
+  pages = {1--5},
+  publisher = {{IEEE}},
+  location = {{Ningbo, China}},
+  doi = {10.1109/PCS48520.2019.8954513},
+  abstract = {AV1 is the next-generation open video coding format, and it can achieve significant coding efficiency with novel coding tools. It supports Lagrangian rate distortion optimization (RDO) method to optimize the coding performance. However, the distortion and the Lagrangian multiplier used in RDO ignore the characteristics of human visual system (HVS), which leads to insufficiency for perceptual video coding. To solve this problem, a perceptual RDO scheme based on the Just Noticeable Distortion (JND) threshold of HVS is proposed. The JND for each pixel is first measured according to three perceptual features: luminance adaptation, masking effects and structure sensitivity. Based on the observation that the regions with smaller distortion visibility thresholds are more sensitive to HVS, a JND-based Lagrangian multiplier is derived to adaptively adjust the rate-distortion (RD) performance for each coding block. Experiments demonstrate that the proposed method can achieve an average SSIM-based -3.93\% BD-Rate saving compared with the original AV1 encoder, which effectively improve the coding performance.},
+  eventtitle = {2019 {{Picture Coding Symposium}} ({{PCS}})},
+  isbn = {978-1-72814-704-8},
+  langid = {english}
+}
+
+

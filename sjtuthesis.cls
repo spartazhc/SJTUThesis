@@ -92,6 +92,7 @@
 \RequirePackage{fancyhdr}
 \RequirePackage{pageslts}
 \RequirePackage{amsmath}
+\RequirePackage{mathtools}
 \ifsjtu@setlatinfont@math
   \RequirePackage{unicode-math}
 \fi
@@ -888,7 +889,7 @@
     {\lstset{style=lstStyleCode,#1}}{}
 }
 \sjtu@atendpackage{tikz}{
-  \usetikzlibrary{shapes.geometric, arrows}
+  \usetikzlibrary{shapes.geometric, arrows, calc}
   \tikzstyle{startstop} = [
     rectangle,
     rounded corners,
@@ -915,6 +916,7 @@
   ]
   \tikzstyle{decision} = [
     diamond,
+    aspect=2,
     minimum width=2cm,
     minimum height=1cm,
     text centered,
