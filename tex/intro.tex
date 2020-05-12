@@ -12,7 +12,7 @@
 AV1使用了许多高级编码工具\cite{chenOverviewCoreCoding2018}，对比H.265/HEVC与VP9等编码标准达到了更高的编码效率\cite{laudeComparisonJEMAV12018,akyaziComparisonCompressionEfficiency2018}，但这是以相当大的额外的计算复杂度实现的，这可能会限制AV1编码标准在实际应用中的收益。当前AV1的编码器实现尚不完善，编码速度与HEVC和AVC等的标准的成熟实现（如x264，x265）相比较低，未经充分优化，在编码延迟上更是亟须优化的挑战。因此，减少编码器运行时间、降低编码延迟且对标准编码效率的影响有限的算法将非常有益。
 % AV1作为较新的编码标准，相关优化研究处于起步阶段，但有以往在编码上的经验可以参考，提出了各种快速算法：基于速率失真模型精度的快速帧内模式决策[[5]](https://ieeexplore.ieee.org/abstract/document/8793367), 基于决策树的AV1快速帧间预测 [[6]](https://ieeexplore.ieee.org/abstract/document/8683580)，多分辨率视频编码中的快速块结构确定[[7]](https://ieeexplore.ieee.org/document/8486492)[[8]](https://ieeexplore.ieee.org/document/8416611)等。
 
-AV1编码器的开源实现主要有：aom\cite{AV1SourceCode2020}，SVT-AV1\cite{ScalableVideoTechnology2020}，rav1e\cite{Rav1eGitRepository2020}。aom作为AV1的参考编码器，注重算法的验证性，因此在速度的优化上有欠缺。SVT-AV1是Intel和Netflix开源的AV1编码器，目标是为点播（video on demand, VOD）、实时编码、转码等应用场景提供AV1编码。SVT-AV1由于其软件设计，是目前最快的AV1编码器实现。
+AV1编码器的开源实现有：aom\cite{AV1SourceCode2020}，SVT-AV1\cite{ScalableVideoTechnology2020}，rav1e\cite{Rav1eGitRepository2020}。aom作为AV1的参考编码器，注重算法的验证性，因此在速度的优化上有欠缺。SVT-AV1是Intel和Netflix开源的AV1编码器，目标是为点播（video on demand, VOD）、实时编码、转码等应用场景提供AV1编码。SVT-AV1由于其软件设计，是目前最快的AV1编码器实现。
 
 Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{awsScalableVideoTechnology2019}编码器体系结构是专为x86处理器设计的，并且特别针对Intel®Xeon®可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。目前，SVT-AV1正在活跃开发中，但仍缺少在编码延迟上的优化，无法胜任直播低延迟场景的应用。
 
