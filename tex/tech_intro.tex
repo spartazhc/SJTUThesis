@@ -90,7 +90,7 @@ AOMedia的成员组成了完整的产业链，共同创建的AV1更是具有开�
 \begin{figure}[!htp]
 	\centering
 	\includegraphics[width=0.99\linewidth]{protocol_latency.png}
-	\caption{流媒体协议延迟及相关应用场景\cite{StreamingVideoLatency2019}}
+	\caption{流媒体协议延迟及相关应用场景\cite{2019VideoStreaming2019}}
 	\label{fig:protocol-latency}
 \end{figure}
 
@@ -139,7 +139,7 @@ AV1的支持封装协议有Matroska/WebM、ISOBMFF、RTP，AV1没有官方支持
 \paragraph{WebM} WebM是一种专为Web设计的开放，免版税的媒体文件格式。WebM的文件结构基于Matroska容器。WebM的针对网络传输进行了优化，致力于满足在网络上提供视频的独特需求：低计算量，设备适应性好、容器格式简单、高质量的实时视频交付等。WebM项目主要由Google团队开发，支持的视频编码标准有VP8、VP9、AV1等。
 
 %https://aomediacodec.github.io/av1-isobmff/
-\paragraph{ISOBMFF} ISO/IEC基本媒体文件格式（ISO/IEC Base Media File Format）定义了基于时间的多媒体文件的通用结构。ISOBMFF用作其他容器格式的基础，如MP4以及CMAF等。ISOBMFF定义于ISO/IEC 14496-12\cite{InformationTechnologyCoding}，AOMedia推出了AV1视频编码的ISOBMFF协议规范\cite{cyrilAV1CodecISO}。
+\paragraph{ISOBMFF} ISO/IEC基本媒体文件格式（ISO/IEC Base Media File Format）定义了基于时间的多媒体文件的通用结构。ISOBMFF用作其他容器格式的基础，如MP4以及CMAF等。ISOBMFF定义于ISO/IEC 14496-12\cite{InformationTechnologyCoding}，AOMedia推出了AV1视频编码的ISOBMFF协议规范\cite{concolatoAV1CodecISO}。
 
 %https://aomediacodec.github.io/av1-rtp-spec/
 \paragraph{RTP} 实时传输协议（Real-time Transport Protocol， RTP）是一种用于在IP网络上传输音视频的网络协议。RTP设计在UDP上运行，为抖动补偿，数据包丢失和无序传送的检测提供了便利。RTP通常与RTCP结合使用。RTP是由Internet工程任务组（IETF）的音频视频传输工作组开发的，最早于1996年作为RFC1889\cite{audio-videotransportworkinggroupRTPTransportProtocol1996}发布，然后于2003年被RFC3550\cite{schulzrinneRTPTransportProtocol2003}取代。对于各音视频编码的RTP封装支持，一般都有对应的RFC协议定义其分包、合包逻辑。AOMedia推出了AV1视频编码的RTP封装草案\cite{RTPPayloadFormat}，尚未提交IETF标准化。

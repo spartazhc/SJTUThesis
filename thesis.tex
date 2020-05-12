@@ -1,5 +1,6 @@
 % 设置 biblatex 额外选项
 % \PassOptionsToPackage{gbpub=false, gbtype=false}{biblatex}
+\PassOptionsToPackage{gbnamefmt=lowercase}{biblatex}
 
 % 载入 SJTUThesis 模版
 % \documentclass[degree=doctor, zihao=-4, language=english, review]{sjtuthesis}
@@ -20,7 +21,8 @@
 \DeclareGraphicsExtensions{.pdf,.eps,.png,.jpg,.jpeg}
 
 % 导入参考文献数据库
-\addbibresource{bib/spartazhc.bib}
+\addbibresource{bib/Codec.bib}
+\addbibresource{bib/WhitePapers.bib}
 
 % 信息录入，必须在导言区进行！
 \input{tex/info}

@@ -68,11 +68,11 @@
 \chapter{SVT-AV1编码器低延迟优化}
 
 \section{SVT架构}
-  Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{awsScalableVideoTechnology2019}编码器体系结构是专为x86处理器设计的，并且特别针对Intel®Xeon®可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。
+  Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableVideoTechnology2019}编码器体系结构是专为x86处理器设计的，并且特别针对Intel®Xeon®可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。
 
   SVT架构的优势在于其伸缩性，可以根据处理器的核数调整各过程的线程数，因此，对于性能较强的服务器，使用SVT架构可以有效地释放处理器性能，从而提升编码速度；对于性能较差的处理器，SVT架构并不能提升编码速度，反而因为多线程的竞争导致编码速度下降，还因为SVT架构拆分了编码器内核，引入了更多的并行，导致编码效率的下降。对于直播转码服务的场景，往往会使用性能较强的服务器处理，适合SVT架构的发挥。
 
-\subsection{SVT-AV1编码器过程}
+\subsection{SVT-AV1编码器过程\cite{EncoderDesignSVTAV1}}
   SVT架构是围绕Process过程设计的。过程是软件中的执行线程或硬件中的IP内核。过程执行一个或多个编码器任务（例如，运动估计，速率控制，解块滤波器等）。过程分为基于图像面向控制和面向数据处理两类。控制过程仅允许单个线程实例，因为控制决策必须全局统一，否则有发生数据泄漏和死锁等情况的风险。
 
   以下简要介绍SVT-AV1中的各个编码器过程：
@@ -118,7 +118,7 @@
   \label{fig:svt-encoder-process}
   \end{figure}
 
-\subsection{SVT系统资源管理器}
+\subsection{SVT系统资源管理器\cite{EncoderDesignSVTAV1}}
 
   SVT作为可扩展编码框架的核心是将编码器内核拆分为上述的多个独立运行的过程，这些过程可以根据处理器核心数量实例化为不同数量的线程，SVT系统资源管理器在这其中起到至关重要的作用。系统资源管理器执行过程间数据和控制管理。系统资源管理器通过控制对象的传递方式来管理对象并将不同过程彼此连接，几乎所有过程间通信都通过该链接进行。
 
@@ -150,7 +150,7 @@
   \paragraph{GOP级并行、帧级并行} 当输入的图像帧多于一个GOP大小时，可以同时编码多个GOP。当一个GOP内，帧参考关系满足后，就可以开始对该帧进行编码。具体来讲，在SVT架构中，图像管理过程（PM）之前的过程属于编码前过程，读入图像帧后即可运行，之后的过程开始正式编码，需要参考GOP结构中的其他帧，当参考关系满足后才可以继续。
   \paragraph{超级块并行} 在编码过程（ENCDEC）中，以超级块为单位，波浪形的方式并行处理。由于每个超级块的编码依赖于其左边和上边块，因此，当一个超级块的左边块和上边块完成编码后，该超级块可进入编码。
 
-  \subsection{SVT架构的多阶段分区、模式选择决策} \label{sec:pd-md}
+  \subsection{SVT架构的多阶段分区、模式选择决策\cite{EncoderDesignSVTAV1}} \label{sec:pd-md}
   给定一个超级块可以考虑的大量块划分方式和大量预测模式，使用所有可用编码工具评估所有选项来收敛到最优分块和编码模式在计算上将非常昂贵。因此，SVT架构使用分阶段决策的方法，有分阶段分区决策（Partition Decisions, PD）和分阶段模式选择（Mode Decisions, MD）。
 
   如图\ref{fig:pd}所示，向PD阶段0输入运动估计结果以及所有可能的分区情况$N_0$，使用比较基本的工具和指标来初步评估不同候选的适应性，并将其中最优的$N_1$种候选传递到PD阶段1,并在后续PD阶段中考虑更复杂的预测和指标来评估。多阶段PD决策后渠道最优的分区决策和模式选择。
@@ -181,14 +181,14 @@
   \begin{figure}[!htp]
     \centering
     \includegraphics[width=\textwidth]{pd-stages.png}
-    \caption{分阶段分区决策}
+    \caption{分阶段分区决策\cite{EncoderDesignSVTAV1}}
   \label{fig:pd}
   \end{figure}
 
   \begin{figure}[!htp]
     \centering
     \includegraphics[width=0.7\textwidth]{md-stages.png}
-    \caption{单次分区决策中的多阶段模式选择}
+    \caption{单次分区决策中的多阶段模式选择\cite{EncoderDesignSVTAV1}}
   \label{fig:md}
   \end{figure}
   %TODO 写一下AssignSegment的伪代码？
