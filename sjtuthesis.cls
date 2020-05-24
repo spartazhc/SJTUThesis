@@ -102,6 +102,7 @@
 \RequirePackage{array}
 \RequirePackage{booktabs}
 \RequirePackage{longtable}
+\RequirePackage{diagbox}
 \RequirePackage{makecell}
 \RequirePackage{caption}
 \RequirePackage[list=off]{bicaption}

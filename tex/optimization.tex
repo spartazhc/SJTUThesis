@@ -1,20 +1,45 @@
 \chapter{AV1低延迟直播系统构建与优化}
 
 \section{AV1低延迟直播系统构建}
-
-  AV1低延迟直播系统原型如图\ref{fig:av1-sys}构建，主播端摄像头采集图像，进行H.264编码后，通过SRT协议传输到转码服务器，转码服务器使用FFmpeg，调用SVT-AV1编码器将接收到的码流进行H.264到AV1的转码，转码后进行RTP封装后，通过RTSP协议传输到观众端解码播放。
+	一个通用的直播系统需要包括采集端、业务服务器、CDN部署以及播放端。本文所搭建的AV1低延迟直播系统实验性系统，目标是探索基于AV1的直播系统的低延迟极限。AV1低延迟直播系统原型如图\ref{fig:av1-sys}构建，主播端摄像头采集图像或使用录屏，进行H.264编码后，通过SRT协议传输到转码服务器，转码服务器使用FFmpeg，调用SVT-AV1编码器将接收到的码流进行H.264到AV1的转码，转码后进行RTP封装，通过RTSP协议传输到观众端解码播放。
 
   \begin{figure}[!htp]
     \centering
-    \includegraphics[width=0.6\textwidth]{av1-sys.png}
+    \includegraphics[width=0.7\textwidth]{av1-sys.png}
     \caption{AV1低延迟直播系统原型}
    \label{fig:av1-sys}
   \end{figure}
 
-  % AV1低延迟直播系统原型基于FFmpeg搭建。
+  AV1低延迟直播系统原型基于FFmpeg搭建。FFmpeg是一个用于记录，转换和传输音视频流的完整开源解决方案，ffmpeg程序本身为一个转码框架，可以根据需求将输入的音视频流执行解封装、转码、滤镜处理后进行封装、传输。
+
+  所搭建的AV1低延迟直播系统原型使用以下组件：
+	\begin{enumerate} [label=\arabic*)]
+		\item 主播端
+		\begin{itemize}
+			\item ffmpeg
+			\item libx264
+			\item libsrt
+		\end{itemize}
+		\item 转码服务器端
+		\begin{itemize}
+			\item ffmpeg
+			\item libSvtAv1Enc
+			\item libsrt
+		\end{itemize}
+		\item 客户端
+		\begin{itemize}
+			\item ffplay
+			\item libdav1d
+		\end{itemize}
+	\end{enumerate}
 
 \section{AV1低延迟直播系统优化}
 
+\subsection{所搭建直播系统原型延迟分析}
+%enumerate or table?
+	\begin{enumerate} [label=\arabic*)]
+		\item
+	\end{enumerate}
 \subsection{SVT-AV1的高启动延迟优化}
   搭建的AV1低延迟直播系统原型带有6秒左右SVT-AV1带来的高启动延迟。延迟产生的原因有两个：
 
@@ -53,7 +78,7 @@
     \includegraphics[width=4cm]{av1_rtp_hdr.png} \\
     \raggedright
       \texttt{Z}: 若第一个OBU元素是延续上一个packet的片段，设1，否则设0；\\
-      \texttt{Y}: 若最后一个OBU元素是一个会延续到下一个packet的片段，设1,否则设0；\\
+      \texttt{Y}: 若最后一个OBU元素是一个会延续到下一个packet的片段，设1，否则设0；\\
       \texttt{W}: 描述当前packet中的OBU元素数量；\\
       \texttt{N}: 若当前packet是视频序列首个packet，设1，否则设0;\\
     \caption{AV1 Aggregation Header}
@@ -153,7 +178,7 @@
   \subsection{SVT架构的多阶段分区、模式选择决策\cite{EncoderDesignSVTAV1}} \label{sec:pd-md}
   给定一个超级块可以考虑的大量块划分方式和大量预测模式，使用所有可用编码工具评估所有选项来收敛到最优分块和编码模式在计算上将非常昂贵。因此，SVT架构使用分阶段决策的方法，有分阶段分区决策（Partition Decisions, PD）和分阶段模式选择（Mode Decisions, MD）。
 
-  如图\ref{fig:pd}所示，向PD阶段0输入运动估计结果以及所有可能的分区情况$N_0$，使用比较基本的工具和指标来初步评估不同候选的适应性，并将其中最优的$N_1$种候选传递到PD阶段1,并在后续PD阶段中考虑更复杂的预测和指标来评估。多阶段PD决策后渠道最优的分区决策和模式选择。
+  如图\ref{fig:pd}所示，向PD阶段0输入运动估计结果以及所有可能的分区情况$N_0$，使用比较基本的工具和指标来初步评估不同候选的适应性，并将其中最优的$N_1$种候选传递到PD阶段1，并在后续PD阶段中考虑更复杂的预测和指标来评估。多阶段PD决策后渠道最优的分区决策和模式选择。
 
   \begin{table}[!hpt]
     \renewcommand{\arraystretch}{0.8}
@@ -199,49 +224,172 @@
     \item 可以尽量详细地记录各线程开始、完成每项任务的时间节点。
   \end{enumerate}
 
-  由此设计了SVT的延迟profile工具。因为直接进行文件写入或输出到stdout会对程序运行速度影响较大，选择先写入内存，当编码结束后，统一写入文件，通过这种方式尽量减小对SVT本身编码速度的影响。在每次系统资源管理器进行对象获取或提交时，记录一条带有时间、过程以及处理图像或片段信息的entry。
+  由此设计了SVT的延迟profile工具。因为直接进行文件写入或输出到stdout会对程序运行速度影响较大，选择先写入内存中的哈希表中，当编码结束后，统一写入文件，通过这种方式尽量减小对SVT本身编码速度的影响。在每次系统资源管理器进行对象获取或提交时，记录一条带有时间、过程以及处理图像或片段信息的entry。
 
-  表\ref{tab:svt-profile}是编码一帧1080p分辨率的视频帧的延迟测量结果，为了便于展示，表格中省略了一些内容。通过分析延迟测量的结果可以了解SVT架构下各过程的运行情况，便于分析延迟的产生以及产生对应的优化方案。
-  % TODO table: latency-profile + table: latency-profile analysis
+  表\ref{tab:svt-profile}是编码一帧1080p分辨率的视频帧的延迟测量结果，为了便于展示，表格中省略了一些内容。通过分析延迟测量的结果可以了解在SVT架构下各过程的运行情况，便于分析延迟的产生以及产生对应的优化方案。
 
   \begin{table}[!hpt]
     \renewcommand{\arraystretch}{0.8} % 减小行间距
     \caption{SVT-AV1处理一帧时各过程延迟Profile}
     \label{tab:svt-profile}
     \centering
-    \begin{tabular}{ccccccccc} \toprule
-      process & inType & outType & picNum & segIdx & tileIdx & sTime & eTime & duration\\ \midrule
-      RESOURCE & 0 & 0 & 0 & -1 & -1 & 0.00 & 0.02 & 0.02 \\
-      PA & 0 & 0 & 0 & -1 & -1 & 0.10 & 5.84 & 5.74 \\
-      PD & 0 & 0 & 0 & 0 & -1 & 5.93 & 5.95 & 0.02 \\
-      PD & 0 & 0 & 0 & 59 & -1 & 5.93 & 6.41 & 0.48 \\
-      ME & 0 & 0 & 0 & 0 & -1 & 6.04 & 6.05 & 0.01 \\
-      ME & 0 & 0 & 0 & 59 & -1 & 6.42 & 6.43 & 0.00 \\
-      IRC & 0 & 0 & 0 & -1 & -1 & 6.46 & 6.47 & 0.01 \\
-      SRC & 0 & 1 & 0 & -1 & -1 & 6.55 & 6.57 & 0.02 \\
-      PM & 1 & 0 & 0 & -1 & -1 & 6.66 & 6.75 & 0.09 \\
-      RC & 0 & 0 & 0 & -1 & -1 & 6.79 & 8.28 & 1.49 \\
-      MDC & 0 & 0 & 0 & -1 & 0 & 8.36 & 14.86 & 6.50 \\
-      ENCDEC & -1 & -1 & 0 & 0 & -1 & 14.94 & 17.25 & 2.31 \\
-      ENCDEC & -1 & -1 & 0 & 510 & -1 & 269.88 & 272.44 & 2.56 \\
-      DLF & 0 & 0 & 0 & 0 & -1 & 272.51 & 272.51 & 0.01 \\
-      DLF & 0 & 0 & 0 & 59 & -1 & 272.51 & 272.98 & 0.47 \\
-      CDEF & 0 & 0 & 0 & 0 & -1 & 272.90 & 353.18 & 80.28 \\
-      REST & 0 & 0 & 0 & -1 & 0 & 353.29 & 353.86 & 0.57 \\
-      ENTROPY & 0 & 2 & 0 & 0 & 0 & 353.87 & 357.16 & 3.29 \\
-      ENTROPY & 0 & 2 & 0 & 16 & 0 & 396.35 & 397.56 & 1.21 \\
-      PAK & 0 & 0 & 0 & -1 & -1 & 397.80 & 398.13 & 0.32\\ \bottomrule
+    \begin{tabular}{ccccccccc}
+    	\toprule
+    	process  & inType & outType & picNum & segIdx & TileIdx & sTime  & eTime  & duration \\ \midrule
+    	RESOURCE &   0    &    0    &   0    &   -1   &   -1    &  0.00  &  0.01  &   0.01   \\
+    	   PA    &   0    &    0    &   0    &   -1   &   -1    &  0.07  &  2.51  &   2.44   \\
+    	   PD    &   0    &    0    &   0    &   0    &   -1    &  2.59  &  2.60  &   0.02   \\
+    	   PD    &   0    &    0    &   0    &   59   &   -1    &  2.59  &  2.97  &   0.39   \\
+    	   ME    &   0    &    0    &   0    &   3    &   -1    &  2.69  &  2.70  &   0.01   \\
+    	   ME    &   0    &    0    &   0    &   59   &   -1    &  2.98  &  2.98  &   0.00   \\
+    	  IRC    &   0    &    0    &   0    &   -1   &   -1    &  2.98  &  2.99  &   0.01   \\
+    	  SRC    &   0    &    1    &   0    &   -1   &   -1    &  3.01  &  3.03  &   0.02   \\
+    	   PM    &   1    &    0    &   0    &   -1   &   -1    &  3.04  &  3.10  &   0.06   \\
+    	   RC    &   0    &    0    &   0    &   -1   &   -1    &  3.13  &  4.12  &   0.99   \\
+    	  MDC    &   0    &    0    &   0    &   -1   &    0    &  4.17  &  6.47  &   2.29   \\
+    	 ENCDEC  &   -1   &   -1    &   0    &   0    &   -1    &  6.52  & 10.45  &   3.92   \\
+    	 ENCDEC  &   -1   &   -1    &   0    &  781   &   -1    & 197.22 & 199.48 &   2.26   \\
+    	  DLF    &   0    &    0    &   0    &   0    &   -1    & 199.56 & 199.56 &   0.01   \\
+    	  DLF    &   0    &    0    &   0    &   59   &   -1    & 199.56 & 199.93 &   0.38   \\
+    	  CDEF   &   0    &    0    &   0    &   0    &   -1    & 199.83 & 262.76 &  62.93   \\
+    	  REST   &   0    &    0    &   0    &   -1   &    0    & 262.87 & 263.44 &   0.57   \\
+    	ENTROPY  &   0    &    2    &   0    &   0    &    0    & 263.45 & 268.00 &   4.55   \\
+    	ENTROPY  &   0    &    2    &   0    &   16   &    0    & 306.02 & 310.01 &   3.99   \\
+    	  PAK    &   0    &    0    &   0    &   -1   &   -1    & 310.51 & 310.93 &   0.42   \\ \bottomrule
     \end{tabular}
   \end{table}
 
+\section{SVT架构的延迟分析}
+运用\ref{sec:svt-profile}章节提到的SVT架构编码延迟profile工具对SVT-AV1编码器进行测试，延迟测试在Intel Xeon Platinum 8280进行，实验系统配置如表\ref{tab:os-8280}，测试使用1080p序列，编码器配置如表\ref{tab:svt-lat}。对测试结果的分析包括对各编码过程使用的CPU时间与各编码过程的延迟分布两类。
+
+本章的延迟测试与章节\ref{sec:jnd-test}中对JND算法的测试使用平台不同，分别是在搭载Intel Xeon Platinum 8280的服务器与搭载Intel Core i7-6700HQ的个人笔记本上完成。原因是SVT-AV1在个人笔记本下的编码速度远达不到实时水平。因此所有关于延迟的测试都在服务器上完成，而对所提算法进行评估时，可以从使用CPU时间进行分析比较，为实验方便考虑而在个人笔记本电脑上完成。为了降低操作系统调度造成的测试结果波动，测试时将CPU的频率策略调整到“Performance”。
+
+\begin{table}[!hpt]
+	\renewcommand{\arraystretch}{0.9}
+	\caption{延迟测试实验系统配置}
+	\label{tab:os-8280}
+	\centering
+	\begin{tabular}{lc} \toprule
+		项目& 参数  \\ \midrule
+		OS:     &Ubuntu 18.04.4 LTS\\
+		Kernel: & 4.15.0-96-generic\\
+		CPU:    &Intel Xeon Platinum 8280 (112) @ 4.000GHz\\
+		RAM:    &93GB\\
+		GCC:    &v7.5.0\\
+		SVT-AV1: & v0.8.1\\ \bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[!hpt]
+	\renewcommand{\arraystretch}{0.9}
+	\caption{SVT-AV1编码器延迟测试参数配置}
+	\label{tab:svt-lat}
+	\centering
+	\begin{tabular}{lc} \toprule
+		项目& 参数  \\ \midrule
+		preset     &8\\
+		pred-struct& LDP\\
+		lookahead    &0\\
+		fps    &60\\
+		GOP    &60\\
+		asm    & up tp avx2\\
+		bitdepth & 8\\
+		hierarchicalLevels  & 4 \\
+		rc & CQP\\ \bottomrule
+	\end{tabular}
+\end{table}
+
+图\ref{fig:cpu-ana}展示了SVT-AV1编码器的各编码过程所用的CPU时间占比，测试发现，SVT-AV1编码器的CPU密集型任务主要分布在ENCDEC、ME、PD三个编码过程中，其中ENCDEC过程所用的CPU时间占总CPU时间的55\%，ME过程所用的CPU时间占总CPU时间的34\%。
+
+\begin{figure}[!htp]
+		\centering
+		\includegraphics[width=0.75\textwidth]{cputime_analysis.png}
+		\caption{SVT-AV1编码器各编码过程使用CPU时间分析图}
+		\label{fig:cpu-ana}
+\end{figure}
+图\ref{fig:cpu-ana}展示了SVT-AV1编码器编码延迟在各编码过程中的分布，测试结果表明，SVT-AV1的编码延迟主要由层级LDP结构下调度产生，特别集中在PM过程和PD过程的调度上，而上述提到的CPU密集型任务ENCDEC过程与ME过程，则由于在SVT架构下的高度并行化在延迟分布上的占比低于其CPU时间使用占比。
+
+\begin{figure}[!htp]
+	\centering
+	\includegraphics[width=0.75\textwidth]{latency_analysis.png}
+	\caption{SVT-AV1编码器编码延迟在各编码过程分布图}
+	\label{fig:lat-ana}
+\end{figure}
+
+\paragraph{PD\_sche} PD\_sche造成的延迟是由于图像决策过程（PD）负责设置帧预测结构，与场景变化检测，默认设置了6帧宽的滑动窗口，PD过程等待当前帧之后的6帧图像到达以后再对当前帧进行决策。因此，在实时编码时会引入6帧的输入延迟，对于30fps的视频流，这个延迟大约有200ms。
+
+\paragraph{PM\_sche} 由于GOP结构为层级LDP，编码并不按照输入帧顺序进行，而是根据层级顺序编码，因此，在实时编码时，沿显示顺序观察，SVT-AV1编码器需要首先完成显示顺序靠后的低层级视频帧编码，满足参考关系后，通过反馈信令使得PM过程启动显示顺序靠前但层级较高的视频帧的编码。
+
+GOP层级会影响PM\_sche的等待时间，但是减少GOP层级并不能降低编码延迟，原因在GOP层级上存在并行程度与依赖关系的权衡：提高GOP层级会使帧依赖关系变复杂，但是可以并行编码的视频帧增加了；降低GOP层级虽然可以减少PM\_sche的等待时间，但是，因为SVT-AV1本身的编码速度达不到实时，事实上会增加等待依赖帧编码的时间。测试表明，在SVT-AV1的实时编码测试中，层级设置越小，编码延迟越高。
+
+\paragraph{PAK\_sche} 在GOP结构为层级LDP时，显示顺序靠后的低层级视频帧的编码会早于显示顺序靠前的高层级视频帧，而编码结果的输出按显示顺序进行。在PAK过程有重排序队列强制按照显示顺序将熵编码的结果打包，而提前完成了的显示顺序靠后的低层级视频帧会等待它之前的帧完成打包后才执行打包，因此产生了PAK\_sche。
+
+\paragraph{overhead} SVT架构中各个编码过程实例化为不同数量的线程，各编码过程之间的数据传递和控制管理通过SVT系统资源管理器控制。过程间通信不可避免的有一些额外开销，这里的overhead表示了这些架构引起的开销总和。
+
 \section{SVT架构的延迟优化}
+
+SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节需要进一步优化，本章提出了对SVT架构在低延迟上的一些优化实践。
+
 \subsection{RESOURCE过程的EOS优化}
-  SVT-AV1本身不是为了低延迟而设计，因此在一些细节需要进一步优化，例如RESOURCE过程中，需要在收到下一帧的输入后才会将当前帧发送给下一级PA过程。这种延后一帧输出的机制是因为流结束标志EOS（End of Stream）设置需要，EOS标记用于表示当前帧是输入流的最后一帧。编码器在发送完最后一帧的数据后，会再发送一个带有EOS标记的空包，指示编码器终止编码过程。
+  在RESOURCE过程中，需要在收到下一帧的输入后才会将当前帧发送给下一级PA过程。这种延后一帧输出的机制是因为流结束标志EOS（End of Stream）设置需要，EOS标记用于表示当前帧是输入流的最后一帧。编码器在发送完最后一帧的数据后，会再发送一个带有EOS标记的空包，指示编码器终止编码过程。
 
-  这样设计的机制在普通视频流编码中是合理的。但是对于我们要求的低延迟编码，EOS机制意味着额外的一个帧输入间隔延迟，对于30fps的流，这个延迟为33ms，相对较大，因此我们可以假设输入的视频流的总帧数是未知的，RESOURCE过程在收到一帧图像后立刻发送给下一级的PA过程，在流需要停止的时候才发送EOS包。
-\subsection{分tile优化}
-  处于性能考虑，SVT-AV1的分tile机制限制在只能分行，不能分列。这导致编码过程中，每个tile编码的波形并行的tile宽度没有发生变化，在一行上的传播次数不变，使得分tile的编码延迟增益十分有限。为了达到更低的编码延迟，这里选择牺牲一部分编码效率来提高并行率，降低编码延迟。
+  这样设计的机制在普通视频流编码中是合理的。但是对于我们要求的低延迟编码，EOS机制意味着额外的一个帧输入间隔延迟，对于30fps的流，这个延迟为33ms，相对较大。对于低延迟实时流媒体编码我们可以假设输入的视频流的总帧数是未知的，RESOURCE过程在收到一帧图像后立刻发送给下一级的PA过程，在流需要停止的时候才发送EOS包。
 
+\subsection{PD过程的滑动窗口优化}
+	在上一章节的分析中提到PD过程中因为滑动窗口机制产生的PD\_sche延迟，可以通过关闭场景变化检测将该滑动窗口的宽度设定为0，从而消除这部分的延迟。图\ref{fig:lat-ana-pd}展示了优化后的延迟测试结果，与优化前的图\ref{fig:lat-ana}相比，占总延迟高达40\%的PD\_sche延迟完全消除，平均编码延迟从优化前$\sim 420$ms降低至$\sim 240$ms。
+
+	\begin{figure}[!htp]
+		\centering
+		\includegraphics[width=0.75\textwidth]{latency_analysis_pd.png}
+		\caption{优化PD\_sche后SVT-AV1编码器编码延迟在各编码过程分布图}
+		\label{fig:lat-ana-pd}
+	\end{figure}
+
+\subsection{分Tile编码优化}
+	在AV1视频编码中，Tile\cite{fuldsethfuldsethTiles}表示尽管可以独立编码和解码的矩形区域。由于Tile划分，会降低像素数据中存在的相关性，降低了编码效率；但是，Tile的划分增加了编码器的并行效率，可有效降低编码延迟\cite{misraOverviewTilesHEVC2013}。
+
+	AV1编码标准支持分Tile编码。根据AV1比特流规范\cite{rivazAV1BitstreamDecoding2019}中Annex A.3，对于1920x1080p@30fps的应用，限制Tile最大划分数为32，限制Tile最大列划分数为8。在AV1中，Tile的划分数量必须为2的指数次。在SVT-AV1编码器中，分Tile编码可以提高ENCDEC过程的并行程度，从而降低ENCDEC过程的延迟。ENCDEC过程延迟的降低使得单帧编码延迟下降，这也将使依赖于单帧编码延迟的调度延迟PAK\_sche和PM\_sche下降。
+
+  出于性能考虑，SVT-AV1默认的分Tile机制限制在只能分行，不能分列。这导致编码过程中，每个Tile编码的波形并行的Tile宽度没有发生变化，在一行上的传播次数不变，使得分Tile的编码延迟增益十分有限。为了达到更低的编码延迟，这里选择牺牲一部分编码效率来提高并行率，降低编码延迟。
+
+  图\ref{tab:tiles-bdrate}展示了不同Tile划分下的BD-Rate变化，图\ref{tab:tiles-latency}展示了不同Tile划分下的延迟变化，因为量化参数QP影响编码延迟，QP越大，编码速度越快，编码延迟越低，这里取QP为31的数据做图，表格中的空白部分表示在由于Tile划分数量的限制被禁止的划分情况。图\ref{tab:tiles-bdrate}表明，分Tile时编码效率有少量损失，且编码效率随划分数量增加而递减；总Tile划分数量一定时，单方向划分与双方向划分相比会损失更多的编码效率。
+
+	\begin{table}[!hpt]
+		%	\renewcommand{\arraystretch}{0.9}
+		\caption{不同Tile划分与对应的BD-Rate变化图}
+		\label{tab:tiles-bdrate}
+		\centering
+		\begin{tabular}{|c|c|c|c|c|c|c|}
+			\hline
+			\diagbox[height=25pt]{col}{row} &    1    &   2    &   4    &   8    &   16   &   32   \\ \hline
+			1                & 0.00\%  & 0.65\% & 1.51\% & 1.86\% & 2.06\% & 3.92\% \\ \hline
+			2                & -0.48\% & 0.21\% & 2.04\% & 2.48\% & 3.03\% &        \\ \hline
+			4                & 0.28\%  & 0.90\% & 3.27\% & 3.96\% &        &        \\ \hline
+			8                & 1.88\%  & 2.72\% & 4.85\% &        &        &        \\ \hline
+		\end{tabular}
+	\end{table}
+  图\ref{tab:tiles-latency}表明，对行方向的Tile划分对编码延迟降低的贡献很小，而对列方向划分对编码延迟降低更有效果。这个结果符合理论预期，因为1920x1080的帧比例为16：9，在波形并行模型下，决定波形传播总延迟的是Tile中超级块数量更多的行或列方向，因此划分更多列方向有利于均衡行与列方向的超级块数量，从而降低总编码延迟。
+
+
+
+	% 这张表格说明之后系统里应该选择row1 col2（或者22）的划分做tradeoff
+	\begin{table}[!hpt]
+		%	\renewcommand{\arraystretch}{0.9}
+		\caption{不同Tile划分的编码延迟（ms）变化图（QP=31）}
+		\label{tab:tiles-latency}
+		\centering
+		\begin{tabular}{|c|c|c|c|c|c|c|}
+			\hline
+			\diagbox[height=25pt]{col}{row} &  1  &  2  &  4  &  8  & 16  & 32  \\ \hline
+			               1                & 240 & 260 & 264 & 240 & 220 & 156 \\ \hline
+			               2                & 246 & 180 & 167 & 155 & 153 &     \\ \hline
+			               4                & 198 & 162 & 132 & 136 &     &     \\ \hline
+			               8                & 164 & 143 & 122 &     &     &     \\ \hline
+		\end{tabular}
+	\end{table}
+
+
+	综上，通过使用Tile划分并选择合适的行、列划分数量，可以进一步优化编码延迟。在降低0.21\%BD-Rate时，可以降低25\%的延迟，降低0.90\%BD-Rate时，可以降低33\%的延迟。
 
 \section{基于JND的快速编码优化}
 
@@ -296,7 +444,7 @@
 
   \begin{equation} \label{equ:la}
     LA(i, j) = \begin{cases}
-      \left(1 - \sqrt{\frac{B(i, j)}{127}}\right) \cdot 17, & \mathrm{if}\: B(i, j)\leq 127 \\
+      \left(1 - \sqrt{\frac{B(i, j)}{127}}\right) \cdot 17, &\mathrm{if}\: B(i, j)\leq 127 \\
       \left(B(i, j) - 127\right) \cdot \frac{3}{128} + 3, &\mathrm{else},
     \end{cases}
   \end{equation}
@@ -373,6 +521,9 @@
     \label{fig:jnd-sb}
   \end{figure}
 
+  JND模型可以有效应用在游戏主题的直播上。游戏画面属于屏幕内容，往往是人工合成的贴图纹理，这些纹理相对自然场景视频更单调，且纹理间相似度高，单调纹理往往有高连续性。因此，在超级块划分时，游戏序列相比自然场景序列存在更多划分深度低的大块，使用基于JND的感知方法可以有效应用在游戏序列的超级块划分快速算法，下文对所提快速算法将展开具体介绍。
+	\subsubsection{感知划分指标的提出与分析}
+
   根据\ref{sec:blk-based-jnd}提出的块级JND感知阈值定义，一个$8\times 8$编码块的感知特征可以通过块级的JND感知阈值$\mathrm{JND_{8x8}}(i, j)$反映，对于更高级别的编码块，其特征变化程度可以通过它的四个编码子块的JND感知阈值差异程度来表现。如式\ref{equ:pi}所示，定义一个编码块的感知划分指标PI为其四个编码子块PI的最大差值。
 
   \begin{equation} \label{equ:pi}
@@ -385,7 +536,7 @@
 
   其中$d$表示划分深度，$64\times 64$划分深度为0，依次递增到$8\times 8$划分深度为3 ，$k$表示父块序号，$m, n$表示子块相对序号。PI大表明编码子块间特征差异大，更需要对其进行划分，PI小表明编码块内特征差异小，可以考虑提前终止编码块划分结构的搜索。
 
-  \subsubsection{感知划分指标分析}
+%  \subsubsection{感知划分指标分析}
 
  使用twitch的10个1080p游戏序列分析超级块划分方式与感知划分指标PI的关系。经过测试分析，以HearthStone序列为例，其划分模式与感知划分指标PI有如图\ref{fig:jnd-part-PI-example}的关系，可以发现，非划分模式的感知划分指标PI相对较小，并且与划分模式的感知划分指标PI具有一定区分性，因此可以通过感知划分指标PI来指导块划分时的提前终止。而相对应的，划分模式的感知划分指标PI的统计特性并不能找到明显的区分性，因此通过感知划分指标PI难以指导块划分时的提前划分。造成这个区别的原因可能是一般来说游戏序列中的平坦区域比较极端化，与提前终止划分的算法契合度高，而纹理复杂区域各有各的特点，共同特性较少。
 
@@ -438,8 +589,8 @@
 
 	\subsubsection{向量加速介绍}
 	单指令多数据（Single instruction, multiple data, SIMD）是一个指令同时应用于多个数据的并行化形式。当对多个数据对象执行完全相同的操作时，SIMD指令可以大大提高性能。典型的应用是数字信号处理和图形处理。下图展示了使用SIMD时单个指令可以完成未使用SIMD时需要多个指令的任务。
-	
-	% 用tikz重画	
+
+	% 用tikz重画
 	\begin{figure}[!hbtp]
 		\centering
 		\subcaptionbox{不使用SIMD}
@@ -453,7 +604,7 @@
 	流式SIMD扩展（Streaming SIMD Extensions, SSE）是Intel的x86架构下的SIMD指令集扩展。SSE添加了八个128位寄存器用于向量指令，与前代指令集多媒体扩展（MultiMedia eXtension, MMX）仅支持整数处理相比，支持了浮点数学运算。SSE的后续版本还有SSE2、SSE3、SSSE3、SSE4、高级向量扩展（Advanced Vector Extensions, AVX）、AVX2、AVX-512。更高版本的指令集向量扩展具有更多、更长的寄存器以及更多的计算指令。
 	\subsubsection{JND计算向量加速实验结果}
   经过测试，在原始像素级JND模型上计算单帧1080p图像所需的时间超过75ms，对于低延迟编码而言，超过75ms的额外延时是不可接受的，因此将像素级模型简化为块级模型是必要的，使用块级JND模型可以有效减少JND模型的计算量，只需3.4ms左右即可完成一帧的计算。
-  
+
   为了进一步加速块级JND模型的计算，对背景亮度和亮度方差使用SIMD进行加速。使用SIMD可以拆开C代码中的循环，每次读入块中一行数据，一个指令对8个像素的亮度并行计算。应用SIMD后，相比块级JND模型的C级别代码可以再加速50\%的JND模型运算速度，只需要1.7ms就可以完成对一个1080p图像帧的计算。
 
   \begin{table}[!hpt]
@@ -469,18 +620,18 @@
     \end{tabular}
   \end{table}
 
-  
 
-  \subsection{实验结果与分析}
+
+  \subsection{实验结果与分析\label{sec:jnd-test}}
 
   \subsubsection{实验环境配置}
   实验使用个人笔记本电脑完成，实验系统配置如表\ref{tab:os}所示，实验使用SVT-AV1配置如表\ref{tab:svt}所示，实验测试了All Intra和Low Delay P两种GOP结构，QP取$\{23, 31, 39, 47\}$（由于MINECRAFT序列在QP取值较低时的VMAF非常接近，为了得到正常的BD-Rate-VMAF，对于MINECRAFT序列取QP为$\{31, 39, 47, 55\}$)。
-  
+
   编码测试结果包括比特率Bitrate，峰值信噪比（Peak Signal to Noise Ratio, PSNR），视频多方法评估融合（Video Multimethod Assessment Fusion, VMAF\cite{liPracticalPerceptualVideo}），\ref{sec:svt-profile}章节中提出的SVT-AV1框架的profile工具被用于记录编码时各模块的CPU使用时间，取ENCDEC过程的CPU时间总和作为编码时间来评估算法应用前后的编码复杂度。
 
   测试序列取twitch的8个1080p游戏序列，一方面游戏直播作为一大重要的直播类型，有着很高的研究价值，另一方面，游戏场景通常是屏幕内容类型的人工场景，场景中简单纹理较多，适合所提算法的测试。
 
-  测试时使用命令\texttt{sudo cpupower frequency-set -g performance}将CPU频率策略调整为“performance”以锁定CPU频率，以确保按照CPU使用时间计算的算法计算量对比准确。
+  测试时使用命令\texttt{sudo cpupower frequency-set -g performance}将CPU频率策略调整为“Performance”以锁定CPU频率，以确保按照CPU使用时间计算的算法计算量对比准确。
 
   \begin{table}[!hpt]
     \renewcommand{\arraystretch}{0.9}
@@ -491,7 +642,7 @@
       项目& 参数  \\ \midrule
       OS:     &Manjaro 20.0 Lysia\\
       Kernel: & x86\_64 Linux 5.6.7-1-MANJARO\\
-      CPU:    &Intel Core i7-6700HQ @ 8x 3.5GHz\\
+      CPU:    &Intel Core i7-6700HQ (8) @ 3.500GHz\\
       RAM:    &16GB\\
       GCC:    &v9.3.0\\
       SVT-AV1: & v0.8.1\\ \bottomrule
@@ -518,15 +669,15 @@
   \end{table}
 
 	\subsubsection{实验测试质量指标}
-	
+
 	\paragraph{PSNR}
 	峰值信噪比（Peak Signal to Noise Ratio, PSNR）表示信号的最大可能功率与影响信号表示保真度的破坏噪声的功率之间的比率。由于许多信号具有非常宽的动态范围，因此PSNR通常用对数分贝标度表示。PSNR是最常用的图像、视频客观质量评价指标，但是PSNR算法逐像素比较参考视频和失真视频，研究\cite{huynh-thuAccuracyPSNRPredicting2012}表明，由于失真的可见性在某种程度上取决于视频内容，因此PSNR无法如实表示人类对视觉失真的感知，尽管如此，PSNR仍是编解码器比较的事实上标准。
-	
+
 	PSNR通过均方误差（mean square error, MSE）定义，给定原始$m\times n$图像$I$与其失真图像$K$，MSE定义为：
 	\begin{equation}
 		\mathrm{MSE} = \frac{1}{mn} \sum_{i=0}^{m-1} \sum_{j=0}^{n-1}[I(i, j) - K(i, j)]^2
 	\end{equation}
-	
+
 	由此，PSNR（dB单位）定义为：
 	\begin{equation}
 	\mathrm{PSNR} = 10 \times \log_10 \left(\frac{\mathrm{MAX}_I^2}{\mathrm{MSE}}\right)
@@ -534,7 +685,7 @@
 	其中，$\mathrm{MAX}_I$表示原始图像的最大可能像素值。
 	\paragraph{VMAF}
 	视频多方法评估融合（Video Multimethod Assessment Fusion, VMAF\cite{liPracticalPerceptualVideo}）是Netflix与南加州大学和德克萨斯大学奥斯汀分校的图像与视频工程实验室合作开发的客观全参考视频质量指标。它根据参考视频序列预测失真视频序列的主观视频质量。
-	
+
 	VMAF使用多种图像质量评价指标来预测视频质量，并使用基于支持向量机（support vector machines, SVM）的回归将多种指标融合，对每个视频帧输出$[0,100]$的分数，最后，对整个视频序列的输出分数求算术平均值得到最终的差分平均意见分数（differential mean opinion score, DMOS），VMAF使用的图像质量评价指标包括包括：
 	\begin{enumerate}[label=\arabic*)]
 		\item 视觉信息保真度（Visual Information Fidelity, VIF）：考虑四个不同空间尺度上的信息保真度损失；
@@ -542,11 +693,11 @@
 		\item 平均同位像素差异（Mean Co-Located Pixel Difference, MCPD）：测量亮度分量上帧之间的时间差异；
 		\item 抗噪信噪比（Anti-noise signal-to-noise ratio, AN-SNR）。
 	\end{enumerate}
-	
+
 	文献\cite{liPracticalPerceptualVideo,barmanEvaluationVideoQuality2018a, leeComparisonObjectiveQuality2017}的测试结果表明，VMAF在多种数据集上的表现均好于其他主观评价指标，特别的，文献\cite{barmanEvaluationVideoQuality2018a}展示了对于游戏视频场景，VMAF的性能远高于其他VQA指标。
-	
+
 	\paragraph{BD-Rate} Bjontegaard速率差（BD-Rate）允许在保持与客观指标所测量的相同质量水平时，定量比较编解码器提供的比特率降低。速率变化计算为质量范围内速率的平均百分比差异。
-	
+
   \subsubsection{实验结果分析}
 
   对算法性能的评估通过测试两种图像质量评价指标完成，分别是峰值信噪比PSNR指标和与视频多方法评估融合VMAF指标。
@@ -618,7 +769,7 @@
       & 31 & -22.96\% & +0.34\% & -0.15 & -0.144 &  & \\ \cline{2-6}
       & 39 & -25.36\% & -0.22\% & -0.14 & -0.207 &  & \\ \cline{2-6}
       & 47 & -23.16\% & -0.36\% & -0.10 & -0.209 &  & \\ \hline
-      \multicolumn{2}{|c|}{平均值} & -16.89\% & +0.35\% & -0.08 & -0.046 & +1.63\% & +2.14\% 
+      \multicolumn{2}{|c|}{平均值} & -16.89\% & +0.35\% & -0.08 & -0.046 & +1.63\% & +2.14\%
 
       \\\hline
     \end{tabular}
@@ -672,7 +823,7 @@
       & 31 & -21.62\% & +0.04\% & -0.12 & -0.003 &  & \\ \cline{2-6}
       & 39 & -17.42\% & -0.70\% & -0.09 & -0.003 &  & \\ \cline{2-6}
       & 47 & -20.60\% & -1.18\% & -0.04 & -0.002 &  & \\ \hline
-      \multicolumn{2}{|c|}{平均值} & -13.06\% & +0.31\% & -0.05 & -0.001 & +2.04\% & +1.31\% 
+      \multicolumn{2}{|c|}{平均值} & -13.06\% & +0.31\% & -0.05 & -0.001 & +2.04\% & +1.31\%
 
        \\\hline
     \end{tabular}
@@ -726,7 +877,7 @@
       & 31 & -40.61\% & +0.22\% & -0.16 & -0.174 &  & \\ \cline{2-6}
       & 39 & -39.68\% & -0.38\% & -0.15 & -0.243 &  & \\ \cline{2-6}
       & 47 & -37.01\% & -0.60\% & -0.12 & -0.305 &  & \\ \hline
-      \multicolumn{2}{|c|}{平均值} & -32.81\% & +0.45\% & -0.11 & -0.058 & +2.05\% & +2.02\% 
+      \multicolumn{2}{|c|}{平均值} & -32.81\% & +0.45\% & -0.11 & -0.058 & +2.05\% & +2.02\%
 
        \\\hline
     \end{tabular}
