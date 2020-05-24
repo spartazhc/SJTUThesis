@@ -10,38 +10,45 @@
    \label{fig:av1-sys}
   \end{figure}
 
-  AV1低延迟直播系统原型基于FFmpeg搭建。FFmpeg是一个用于记录，转换和传输音视频流的完整开源解决方案，ffmpeg程序本身为一个转码框架，可以根据需求将输入的音视频流执行解封装、转码、滤镜处理后进行封装、传输。
-
-  所搭建的AV1低延迟直播系统原型使用以下组件：
+  AV1低延迟直播系统原型基于FFmpeg搭建。FFmpeg是一个用于记录，转换和传输音视频流的完整开源解决方案，\texttt{ffmpeg}命令行程序本身为一个转码框架，可以根据需求将输入的音视频流执行解封装、转码、滤镜处理后进行封装、传输。所搭建的AV1低延迟直播系统原型使用以下组件：
 	\begin{enumerate} [label=\arabic*)]
-		\item 主播端
-		\begin{itemize}
-			\item ffmpeg
-			\item libx264
-			\item libsrt
-		\end{itemize}
-		\item 转码服务器端
-		\begin{itemize}
-			\item ffmpeg
-			\item libSvtAv1Enc
-			\item libsrt
-		\end{itemize}
-		\item 客户端
-		\begin{itemize}
-			\item ffplay
-			\item libdav1d
-		\end{itemize}
+		\item 主播端：\texttt{ffmpeg, libx264, libsrt}
+		\item 转码服务器端：\texttt{ffmpeg, libSvtAv1Enc, libsrt}
+		\item 客户端：\texttt{ffplay, libdav1d}
 	\end{enumerate}
-
-\section{AV1低延迟直播系统优化}
+\subsection{FFmpeg中AV1的RTP封装实现}
+	由于AV1编码的RTP封装协议\cite{RTPPayloadFormat}仍处于草案阶段，以及AV1的RTP封装协议主要用于WebRTC，在FFmpeg中并没有AV1编码的RTP封装支持，因此，为了实现AV1直播系统原型，实现了FFmpeg中AV1的RTP封装实现。
+	
+	由于RTP的packet大小限制为1500 bytes，再加上RTP头部的开销，实际payload可用大小小于1500 bytes。对于视频编码，I帧大小往往会超过这个限制，而一些P帧可能远远达不到这个限制，因此需要对OBU进行拆分和聚合，提高RTP封装的传输效率。根据图\ref{fig:av1rtp-aggr}的聚合头部规则对OBU进行拆分与聚合，封装成RTP packet进行传输，解封装时，根据RTP packet中的聚合头部，将packet解封装为OBU，传到解码器进行解码。
+	
+	这部分的实现通过在FFmpeg中加入\texttt{rtpenc\_av1.c}、\texttt{rtpdec\_av1.c}来实现对AV1编码的处理。实际实现时，考虑到OBU聚合规则可能引起的延迟，为了达到尽可能低的延迟，仅对超过RTP payload大小的包进行拆分，不进行聚合。
+	
+	\begin{figure}[!htp]
+		\centering
+		\includegraphics[width=4cm]{av1_rtp_hdr.png} \\
+		\raggedright
+		\texttt{Z}: 若第一个OBU元素是延续上一个packet的片段，设1，否则设0；\\
+		\texttt{Y}: 若最后一个OBU元素是一个会延续到下一个packet的片段，设1，否则设0；\\
+		\texttt{W}: 描述当前packet中的OBU元素数量；\\
+		\texttt{N}: 若当前packet是视频序列首个packet，设1，否则设0;\\
+		\caption{AV1聚合头部}
+		\label{fig:av1rtp-aggr}
+	\end{figure}
+\section{AV1低延迟直播系统分析与优化}
 
 \subsection{所搭建直播系统原型延迟分析}
-%enumerate or table?
+%enumerate or table? 测数据太麻烦了
+	所搭建直播系统原型延迟由各组件在各阶段的延迟累加而成，其中，主要的延迟如下：
 	\begin{enumerate} [label=\arabic*)]
-		\item
+		\item 主播端x264编码延迟
+		\item 主播端推流到转码服务器SRT协议延迟
+		\item 转码服务器SVT-AV1编码器启动延迟：$6\sim 7$s
+		\item 转码服务器SVT-AV1编码延迟：$\sim 3$s
+		\item 客户端从转码服务器拉流RTSP延迟
+		\item 客户端播放器缓冲区延迟
 	\end{enumerate}
 \subsection{SVT-AV1的高启动延迟优化}
-  搭建的AV1低延迟直播系统原型带有6秒左右SVT-AV1带来的高启动延迟。延迟产生的原因有两个：
+  搭建的AV1低延迟直播系统原型带有6～7秒左右SVT-AV1带来的高启动延迟。延迟产生的原因有两个：
 
   \begin{enumerate} [label=\arabic*)]
     \item \textbf{分配内存多、单线程分配。}SVT-AV1编码器在启动时需要分配大量内存，启动大量线程，本身耗时较长，SVT框架在CPU核心数较多的服务器上会分配更多的线程，而分配线程与内存的工作由单线程完成。这导致在搭载Intel Xeon8280的服务器上，SVT-AV1对于1080p视频参数的启动需要花费6秒进行初始化。
@@ -51,7 +58,7 @@
   % TODO 格式：enumerate的缩进和后续段落的缩进
   由以上原因，对SVT-AV1的高启动延迟优化有两种方案：
 
-  \paragraph{优化malloc减小初始化延迟} SVT-AV1的debug版本带有对malloc的profile，可以分析初始化过程中，malloc被高频调用的位置。通过对高频malloc的代码进行向量化以大幅减小malloc调用次数，可以一定程度上减小SVT-AV1初始化时间。
+  \paragraph{优化malloc减小初始化延迟} SVT-AV1编码器在启动时会请求大量内存，实验发现，分配总量大小相同的内存块时，每次分配的内存越小、调用malloc次数越多，分配所需的总时间越长，因此可以通过将少量多次的malloc请求合并减少malloc调用次数以降低延迟。SVT-AV1的debug版本带有对malloc的profile，可以分析初始化过程中malloc被高频调用的位置。通过对高频malloc的代码进行向量化以大幅减小malloc调用次数，可以一定程度上减小SVT-AV1初始化时间。
 
   \begin{table}[!hpt]
     \caption{SVT-AV1 malloc优化结果}
@@ -66,27 +73,15 @@
 
   \paragraph{预启动SVT-AV1消除初始化延迟} 上述优化malloc的方法以及其他优化初始化速度的方法只能在一定程度上减小SVT-AV1的初始化时间。对于低延迟的直播系统，要求尽量减小直播系统延迟，可以通过预启动SVT-AV1编码器来消除初始化延迟，这需要约定上行码流的分辨率，因为预启动的行为本身是使用了不能预先获知的信息。在FFmpeg接收到上行码流前按照约定的分辨率预先初始化\texttt{AVCodec}，接收到上行码流后用预先初始化好的\texttt{AVCodec}，不再重新初始化，即可消除这部分延迟。
 
-\subsection{FFmpeg中AV1的RTP封装实现}
-  由于AV1编码的RTP封装协议\cite{RTPPayloadFormat}仍处于草案阶段，以及AV1的RTP封装协议主要用于WebRTC，在FFmpeg中并没有AV1编码的RTP封装支持，因此，为了实现AV1直播系统原型，实现了FFmpeg中AV1的RTP封装实现。
-
-  由于RTP的packet大小限制为1500 bytes，再加上RTP头部的开销，实际payload可用大小小于1500 bytes。对于视频编码，I帧大小往往会超过这个限制，而一些P帧可能远远达不到这个限制，因此需要对OBU进行拆分和聚合，提高RTP封装的传输效率。根据图\ref{fig:av1rtp-aggr}的聚合头部规则对OBU进行拆分与聚合，封装成RTP packet进行传输，解封装时，根据RTP packet中的聚合头部，将packet接封装为OBU，传到解码器进行解码。
-
-  这部分的实现通过在FFmpeg中加入\texttt{rtpenc\_av1.c}、\texttt{rtpdec\_av1.c}来实现对AV1编码的处理。实际实现时，考虑到OBU聚合规则可能引起的延迟，为了达到尽可能低的延迟，仅对超过RTP payload大小的包进行拆分，不进行聚合。
-
-  \begin{figure}[!htp]
-    \centering
-    \includegraphics[width=4cm]{av1_rtp_hdr.png} \\
-    \raggedright
-      \texttt{Z}: 若第一个OBU元素是延续上一个packet的片段，设1，否则设0；\\
-      \texttt{Y}: 若最后一个OBU元素是一个会延续到下一个packet的片段，设1，否则设0；\\
-      \texttt{W}: 描述当前packet中的OBU元素数量；\\
-      \texttt{N}: 若当前packet是视频序列首个packet，设1，否则设0;\\
-    \caption{AV1 Aggregation Header}
-   \label{fig:av1rtp-aggr}
-  \end{figure}
-
+	\subsection{其他系统延迟的优化}
+	
+	主播端使用x264编码器编码，x264的调用配置需要使用\texttt{-tune zerolatency -preset ultrafast}，zerolatency会通过禁止b帧使用，关闭码率控制的lookahead等方式降低编码延迟。
+	
+	在播放器端的延迟可以通过合理配置\texttt{ffplay}降低，包括了消除播放器缓冲区的\texttt{-fflags nobuffer}以及减小\texttt{probesize}在接收到流以后快速开始播放等，具体使用的命令如下：
+	
+	\texttt{ffplay -fflags nobuffer -flags low\_delay -framedrop -probesize 32 -analyzeduration 0}
 \section{本章小结}
-  本章讲述了基于AV1的低延迟编码系统的构建，具体阐述了构建直播系统工作，原型直播系统的构建是后续优化的基础。初始构建的直播系统原型系统延迟较高，将在本章与后续章节中阐述逐步优化的过程。基于所构建的直播系统，在系统层面进行的优化主要有针对SVT-AV1的高启动延迟的优化与实现FFmpeg中AV1的RTP封装。前者通过优化malloc的调用与预启动SVT-AV1编码器解决，后者是在FFmpeg中实现了对AV1码流的RTP封装与解码逻辑。在系统层面进行优化后，由直播系统本身导致的额外延迟基本消除。
+  本章讲述了基于AV1的低延迟编码系统的构建，具体阐述了构建直播系统工作，原型直播系统的构建是后续优化的基础，为了实现AV1的RTSP协议传输，在FFmpeg中实现了对AV1码流的RTP封装与解封装逻辑。初始构建的直播系统原型系统延迟较高，将在本章与后续章节中阐述逐步优化的过程。基于所构建的直播系统，在系统层面进行的优化主要是针对SVT-AV1的高启动延迟的优化和一些组建的配置优化。通过优化malloc的调用与预启动SVT-AV1编码器解决。在系统层面进行优化后，由直播系统本身导致的额外延迟基本消除。
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
