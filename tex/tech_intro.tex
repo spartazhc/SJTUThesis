@@ -14,8 +14,7 @@
 
 量化（Quantization）和熵编码（Entropy Coding）是预测、变换后的两个重要处理技术。变换后，数据在变换域中呈不均匀分布，能量主要集中在直流与低频区域，因此采用非均匀量化，对低频区域执行细量化，对高频区域执行粗量化，可以减小量化误差。量化是数据损失的过程，引入了失真，提升了压缩效率。熵编码表示一个符号的码字长度随符号出现概率变化，为高概率符号分配较短码字、为低概率符号分配较长码字，熵编码可以提供比等长编码更高的编码效率。
 
-视频编码的性能取决于编码码率、失真、计算复杂度三者的折中选择。考虑如何在限制的码率条件下，为编码选择合适的模式与参数以最小化编码失真的技术称为率失真优化\cite{sullivanRatedistortionOptimizationVideo1998}（Rate Distortion Optimization, RDO）
-
+视频编码的性能取决于编码码率、失真、计算复杂度三者的折中选择。考虑如何在限制的码率条件下，为编码选择合适的模式与参数以最小化编码失真的技术称为率失真优化\cite{sullivanRatedistortionOptimizationVideo1998}（Rate Distortion Optimization, RDO）。
 以上介绍了视频编码中的核心技术，包括预测、变换编码、量化、率失真优化、熵编码等，实际应用中，组合运用上述技术以实现视频的高效压缩。
 \subsection{视频编码标准对比}
 
@@ -36,12 +35,12 @@
   \centering
   \begin{tabular}{cccc}
   	\toprule
-  	  Codec    & Year &  编码效率   & 专利费用 \\ \midrule
-  	H.264/AVC  & 2003 & 50.7\%  &  \$  \\
-  	   VP9     & 2013 & 37.6\%  & free \\
-  	H.265/HEVC & 2013 &  /       & \$\$ \\
-  	   AV1     & 2018 & -3.8\%  & free \\
-  	H.266/VVC  & TBD  & -27.5\% & \$\$ \\ \bottomrule
+  	  Codec    & Year & 编码效率  & 专利费用 \\ \midrule
+  	H.264/AVC  & 2003 & 50\%  &  \$  \\ %50.7\%  37.6\%  0  -3.8\%  -27.5\%
+  	   VP9     & 2013 & 37\%  & free \\
+  	H.265/HEVC & 2013 &   /   & \$\$ \\
+  	   AV1     & 2018 & -10\% & free \\
+  	H.266/VVC  & TBD  & -30\% & \$\$ \\ \bottomrule
   \end{tabular}
 \end{table}
 
@@ -51,7 +50,7 @@
 \begin{enumerate} [label=\arabic*)]
   \item AV1的免版税特性，相比HEVC的版税及专利问题有巨大优势；
   \item AV1是当前最新一代的编码标准，编码效率高；
-  \item AV1设计旨在用于互联网上的视频传输，适合视频直播的应用场景；
+  \item AV1设计旨在用于互联网上的视频传输，适合视频直播的应用场景。
 \end{enumerate}
 
 \subsection{AV1视频编码标准}
@@ -80,7 +79,7 @@ AV1具有更强大的帧间编码器，对参考帧和运动矢量进行了扩�
 	\label{fig:av1-multi-layer-structure}
 \end{figure}
 
-图\ref{fig:av1-multi-layer-structure}展示了黄金帧组的多层预测结构，其中自适应数量的帧共享相同的GOLDEN和ALTREF帧。 BWDREF是直接编码的超前帧，无需应用时间滤波，适合用作相对较短距离的后向参考。ALTREF2用作GOLDEN和ALTREF之间的帧的将来参考。所有新参考帧都可以通过单个预测模式选择，也可以组合成对以形成复合模式。AV1提供了丰富的参考帧对集合，同时提供了双向复合预测和单向复合预测，因此可以用更自适应和最优的方式对具有动态时间相关性特征的各种视频进行编码。
+图\ref{fig:av1-multi-layer-structure}展示了黄金帧组的多层预测结构\cite{chenOverviewCoreCoding2018}，其中自适应数量的帧共享相同的GOLDEN和ALTREF帧。 BWDREF是直接编码的超前帧，无需应用时间滤波，适合用作相对较短距离的后向参考。ALTREF2用作GOLDEN和ALTREF之间的帧的将来参考。所有新参考帧都可以通过单个预测模式选择，也可以组合成对以形成复合模式。AV1提供了丰富的参考帧对集合，同时提供了双向复合预测和单向复合预测，因此可以用更自适应和最优的方式对具有动态时间相关性特征的各种视频进行编码。
 
 \subsubsection{AV1开放比特流单元}
 本文不涉及过多的AV1编码工具原理，但是涉及AV1码流的相关知识。AV1码流被封装成“开放比特流单元（OBU）”这种低开销的比特流格式。每个OBU由一个\texttt{obu\_header}和相对应类型的obu载荷构成。AV1的OBU类型如表\ref{tab:obutype}所示，每个编码序列有一个\texttt{OBU\_SEQUENCE\_HEADER}包含该码流的序列编码信息；\texttt{OBU\_TEMPORAL\_DELIMITER}表示时间分割符，包含空载荷；\texttt{OBU\_FRAME\_HEADER}包含了编码的一帧的头信息；\texttt{OBU\_TILE\_GROUP}包含一个Tile内部的各个superblock分割类型、预测变换类型以及参数等解码需要的信息；\texttt{OBU\_FRAME}包含一个\texttt{OBU\_FRAME\_HEADER}和一个\texttt{OBU\_TILE\_GROUP}。在后续RTP封装的时候，由于RTP封装的payload大小限制，这些OBU会根据规则分割装入不同的RTP包。
@@ -184,7 +183,7 @@ AV1的支持封装协议有Matroska/WebM、ISOBMFF、RTP，AV1没有官方支持
 
 \begin{enumerate} [label=\arabic*)]
   \item 对于基于HTTP的自适应流媒体传输协议，HLS对封装格式的需求是MPEG-TS或fmp4，前者AV1没有官方的协议支持，后者包含在对ISOBMFF的支持中，可以实现；对于DASH，AV1支持使用WebM封装或fmp4封装。但基于HTTP的自适应流媒体传输协议的延迟一般较高；
-  \item 对于RTMP协议，不支持AV1编码协议，不考虑；
+  \item 对于RTMP协议，不支持AV1编码协议，不予考虑；
   \item 对于RTSP协议，AV1支持其所需的RTP封装格式，在延迟上性能较好；
   \item 对于SRT协议，AV1并没有MPEG-TS封装协议支持，但SRT可以用作上行到转码服务器的传输协议；
   \item 对于WebRTC，虽然它有着最优秀的延迟性能，但是由于其设计是面向视频会议，伸缩性较差，不适合作为热流直播的协议选择。

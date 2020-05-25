@@ -38,13 +38,13 @@
 
   \section{JND模型介绍}
   传统的视频编码旨在去除视频在时域与空域的信息冗余，不考虑对人眼视觉特性的适应性。因此，编码后的视频仍包含许多人眼视觉无法察觉到的冗余，这些感知冗余是我们的优化方向。为了定量处理这些感知冗余，在感知编码中恰可察觉失真（Just-Noticeable-Distortion, JND）模型是一类较好的选择，JND模型根据人眼视觉特性提出，定量描述了人眼恰可察觉的失真阈值，用于度量视频编码中的感知冗余。
-  
+
   近年来，对JND模型的研究可分为两类：一类是子带域（Subband-domain）JND模型，该类模型在子带域分析，使用该类模型时，需要先将原视频变换到子带域，另一类是像素域JND模型，该类模型直接在原始视频的图像像素域上计算。由于子带域JND模型需要进行频域转换，需要额外的复杂度，在实际应用中效率较低，相对而言，像素域JND由于计算更快，在视频、图像处理中更常用。
-  
+
   为了进一步提高JND模型的运算速度，本文提出了将像素域JND模型简化得到的块级JND模型。
   \subsection{像素级JND模型介绍}
   现有的像素域JND模型一般由亮度适应性和空间对比度掩蔽两部分组成。
-  
+
   \begin{figure}[!htp]
 		\centering
 		\includegraphics[width=0.66\textwidth]{bg-luma.png}
@@ -56,7 +56,7 @@
 
   \begin{equation} \label{equ:la}
     LA(i, j) = \begin{cases}
-      \left(1 - \sqrt{\frac{B(i, j)}{127}}\right) \cdot 17, &\mathrm{if}\: B(i, j)\leq 127 \\
+      \left(1 - \sqrt{\frac{B(i, j)}{127}}\right) \cdot 17, &\mathrm{if}\: B(i, j)\leq 127, \\
       \left(B(i, j) - 127\right) \cdot \frac{3}{128} + 3, &\mathrm{else},
     \end{cases}
   \end{equation}
@@ -91,7 +91,7 @@
   \paragraph{对比度掩蔽效应} 对比度掩蔽效应是一种常见且重要掩蔽效应，指在观看对比度不同的区域时产生的掩蔽效应，相比低对比度的区域，高对比度的区域具有更强的视觉掩蔽效应。根据文献\cite{wuPatternMaskingEstimation2013}，对比度掩蔽效应（Constast Masking, CM）可以建模关于亮度对比度的非线性函数，由此得到对比度掩蔽效应因子$CM$，如式\ref{equ:cm}所示：
 
   \begin{equation} \label{equ:cm}
-    CM(i, j) = 0.115 \cdot \frac{\alpha \cdot L_c(i, j)^{2.4}}{L_c(i, j)^2 + \beta^2}
+    CM(i, j) = 0.115 \cdot \frac{\alpha \cdot L_c(i, j)^{2.4}}{L_c(i, j)^2 + \beta^2},
   \end{equation}
   其中$\alpha$和$\beta$为常数，分别取16和26。$L_c(i, j)$为图像中像素点$(i, j)$位置的$5\times 5$范围亮度标准差。
   % question: CM到底如Matlab中的是亮度方差（标准差）还是如黄yc的论文里面写的用梯度、Prewitt算子算的。
@@ -99,7 +99,7 @@
   \paragraph{非线性组合模型} 计算得到亮度适应性因子$LA$和对比度掩蔽效应因子$CM$这两种视觉特性强度后，如何有效将它们集成在一起获得准确的JND阈值成为了一个重要问题。考虑到与只存在一种掩蔽效应相比，多个掩蔽效应会导致目标区域的失真更难以察觉，因此多个掩蔽效应的组合应采取某种形式的加法，一方面，两个掩蔽因子之间重叠会导致各自的增益降低，另一方面，需要考虑两个因子之间相互重叠的影响范围。基于以上的考虑，文献\cite{yangJustNoticeableDistortion2005}提出了一种非线性组合模型，能够将两种视觉特性强度进行组合，得到最终的JND感知阈值模型。因此，采用该非线性组合模型对亮度适应性因子$LA$和对比度掩蔽效应因子$CM$组合，得到的JND感知阈值模型，如式\ref{equ:jnd}:
 
   \begin{equation} \label{equ:jnd}
-    \mathrm{JND}(i, j) = LA(i, j) + CM(i, j) - 0.3 \cdot \min \left\{LA(i, j) , CM(i, j)\right\}
+    \mathrm{JND}(i, j) = LA(i, j) + CM(i, j) - 0.3 \cdot \min \left\{LA(i, j) , CM(i, j)\right\}.
   \end{equation}
 
 
@@ -108,7 +108,7 @@
 	原始的JND感知阈值模型是像素级模型，处理一个视频帧时，需要对其中的每个像素位置进行计算，运算量较大，严重影响算法的延迟，为了将JND感知阈值模型用在实时的低延迟编码中，需要对模型进行简化。结合后续将JND感知阈值用于分区决策中提前终止算法，将原始的像素级JND感知阈值模型简化为$8\times 8$块级模型，最小处理单位化为$8\times 8$块。式\ref{equ:la}中的亮度均值计算使用的卷积核替换为图\ref{fig:8x8luma-kernel}所示的$8\times 8$卷集合，式\ref{equ:cm}中使用的亮度标准差替换为$8\times 8$块内的亮度标准差。由此计算块级的JND感知阈值$\mathrm{JND_{8x8}}(i, j)$。
 
 	\begin{equation} \label{equ:jnd2}
-		\mathrm{JND_{8x8}}(m, n) = LA(m, n) + CM(m, n) - 0.3 \cdot \min \left\{LA(m, n) , CM(m, n)\right\}
+		\mathrm{JND_{8x8}}(m, n) = LA(m, n) + CM(m, n) - 0.3 \cdot \min \left\{LA(m, n) , CM(m, n)\right\},
 	\end{equation}
 	其中，$m, n$分别表示视频帧的$8\times 8$块行、列索引。
 
@@ -118,7 +118,7 @@
 	块级JND模型的提出大大减小了JND模型的计算量，为了进一步加速JND模型的计算，对背景亮度和亮度方差使用SIMD方法进行向量加速。
 	\subsection{向量加速介绍}
 	单指令多数据（Single instruction, multiple data, SIMD）是一个指令同时应用于多个数据的并行化形式。当对多个数据对象执行完全相同的操作时，SIMD指令可以大大提高性能。典型的应用是数字信号处理和图形处理。下图展示了使用SIMD时单个指令可以完成未使用SIMD时需要多个指令的任务。
-	
+
 	\begin{figure}[!hbtp]
 		\centering
 		\subcaptionbox{不使用SIMD}
@@ -179,7 +179,6 @@
       \quad \mathrm{JND_{8x8}}(k), &\mathrm{if}\, d = 2,
     \end{dcases}
   \end{equation}
-
   其中$d$表示划分深度，$64\times 64$划分深度为0，依次递增到$8\times 8$划分深度为3 ，$k$表示父块序号，$m, n$表示子块相对序号。PI大表明编码子块间特征差异大，更需要对其进行划分，PI小表明编码块内特征差异小，可以考虑提前终止编码块划分结构的搜索。
 
 %  \subsubsection{感知划分指标分析}
@@ -237,7 +236,7 @@
   \section{实验结果与分析\label{sec:jnd-test}}
 
   \subsection{实验环境配置}
-  实验使用个人笔记本电脑完成，实验系统配置如表\ref{tab:os}所示，实验使用SVT-AV1配置如表\ref{tab:svt}所示，实验测试了All Intra和Low Delay P两种GOP结构，QP取$\{23, 31, 39, 47\}$（由于MINECRAFT序列在QP取值较低时的VMAF非常接近，为了得到正常的BD-Rate-VMAF，对于MINECRAFT序列取QP为$\{31, 39, 47, 55\}$)。
+  实验使用个人笔记本电脑完成，实验系统配置如表\ref{tab:os}所示，实验使用SVT-AV1配置如表\ref{tab:svt}所示，实验测试了All Intra和Low Delay P两种GoP结构，QP取$\{23, 31, 39, 47\}$（由于MINECRAFT序列在QP取值较低时的VMAF非常接近，为了得到正常的BD-Rate-VMAF，对于MINECRAFT序列取QP为$\{31, 39, 47, 55\}$)。
 
   编码测试结果包括比特率Bitrate，峰值信噪比（Peak Signal to Noise Ratio, PSNR），视频多方法评估融合（Video Multimethod Assessment Fusion, VMAF\cite{liPracticalPerceptualVideo}），\ref{sec:svt-profile}章节中提出的SVT-AV1框架的profile工具被用于记录编码时各模块的CPU使用时间，取ENCDEC过程的CPU时间总和作为编码时间来评估算法应用前后的编码复杂度。
 
@@ -272,7 +271,7 @@
       pred-struct& LDP\\
       lookahead    &0\\
       fps    &60\\
-      GOP    &60\\
+      GoP    &60\\
       asm    & up tp avx2\\
       bitdepth & 8\\
       hierarchicalLevels  & 4 \\
@@ -287,12 +286,12 @@
 
 	PSNR通过均方误差（mean square error, MSE）定义，给定原始$m\times n$图像$I$与其失真图像$K$，MSE定义为：
 	\begin{equation}
-		\mathrm{MSE} = \frac{1}{mn} \sum_{i=0}^{m-1} \sum_{j=0}^{n-1}[I(i, j) - K(i, j)]^2
+		\mathrm{MSE} = \frac{1}{mn} \sum_{i=0}^{m-1} \sum_{j=0}^{n-1}[I(i, j) - K(i, j)]^2.
 	\end{equation}
 
 	由此，PSNR（dB单位）定义为：
 	\begin{equation}
-	\mathrm{PSNR} = 10 \times \log_10 \left(\frac{\mathrm{MAX}_I^2}{\mathrm{MSE}}\right)
+	\mathrm{PSNR} = 10 \times \log_10 \left(\frac{\mathrm{MAX}_I^2}{\mathrm{MSE}}\right),
 	\end{equation}
 	其中，$\mathrm{MAX}_I$表示原始图像的最大可能像素值。
 	\paragraph{VMAF}
@@ -529,4 +528,4 @@
 
   \section{本章小结}
 
-  本章提出了基于人眼感知特性的超级块快速划分算法。首先介绍了人眼视觉特性，包括亮度自适应性、视觉掩蔽效应和视觉注意机制，介绍了像素级JND模型的提出，以及根据像素级JND模型优化得到的块级JND模型。为进一步加速JND模型的计算，对背景亮度计算和亮度方差计算运用了SIMD方法进行加速，加速后只需1.7ms即可完成对一个1080p视频帧的JND模型计算。对JND感知阈值与AV1超级块划分结果进行统计分析，总结得到了与块划分相关的感知划分指标，并根据感知划分指标在twitch的游戏视频序列中的统计特性，分析确定了块划分提前终止划分的阈值。根据该阈值实现块划分时的提前终止，可以跳过大量的搜索过程，减少大量编码复杂度，降低编码时间。实验结果表明，在SVT-AV1的最快编码预设的基础上，在损失2\%左右编码性能的前提下，本章所提出的超级块快速划分算法在All Intra和Low Delay P两种GOP结构上均可以减少15\%左右的编码时间，进一步调整md-stage后可以在All Intra下减少30\%的编码时间。
+  本章提出了基于人眼感知特性的超级块快速划分算法。首先介绍了人眼视觉特性，包括亮度自适应性、视觉掩蔽效应和视觉注意机制，介绍了像素级JND模型的提出，以及根据像素级JND模型优化得到的块级JND模型。为进一步加速JND模型的计算，对背景亮度计算和亮度方差计算运用了SIMD方法进行加速，加速后只需1.7ms即可完成对一个1080p视频帧的JND模型计算。对JND感知阈值与AV1超级块划分结果进行统计分析，总结得到了与块划分相关的感知划分指标，并根据感知划分指标在twitch的游戏视频序列中的统计特性，分析确定了块划分提前终止划分的阈值。根据该阈值实现块划分时的提前终止，可以跳过大量的搜索过程，减少大量编码复杂度，降低编码时间。实验结果表明，在SVT-AV1的最快编码预设的基础上，在损失2\%左右编码性能的前提下，本章所提出的超级块快速划分算法在All Intra和Low Delay P两种GoP结构上均可以减少15\%左右的编码时间，进一步调整md-stage后可以在All Intra下减少30\%的编码时间。
