@@ -6,9 +6,21 @@
 
 \section{视频编码标准}
 
-视频编码技术利用视频在时间和空间维度上的冗余性，对原始的视频序列进行压缩，减小视频文件的码率，以便于存储和传输。视频编码标准指的是规定了所用的视频编码技术集合、相对应的编码结果比特流及编解码规范的标准。视频编码标准主要由MPEG（Moving Picture Experts Group，动态图像专家组）和ITU（International Telecommunication Union，国际电信联盟）两大组织制定，近年来一些新的视频编码标准进入市场，有VP8、VP9、Daala、Thor等，以及由提出这些标准的公司组成的开放媒体联盟（AOMedia）开发的下一代视频编码标准：AV1。
+\subsection{视频编码概述}
 
+视频编码技术利用视频在时间和空间维度上的冗余性，对原始的视频序列进行压缩，减小视频文件的码率，以便于存储和传输。视频编码技术发展中，有两类重要的编码技术：预测编码与变换编码。预测编码通过分析临近像素在时间与空间上的相关性，利用已经编码的像素对需要编码的像素进行预测，只需对预测误差进行编码，因为残差信息相比原始像素的数据量更小，可以获得编码增益。变换编码对空间域下的图像进行某种变换，得到变换域中的数据表达，改变数据分布以减少有效数据量。将两种编码技术结合使用的方式称作混合编码，使用混合编码可以获得比单独使用一种编码技术更高的压缩效率。
+
+为了进一步提高压缩效率，在混合编码框架中加入了针对运动目标的运动估计和运动补偿机制。通过运动估计（Motion Estimation, ME）得到物体的运动矢量（Motion Vector, MV），根据运动矢量计算前后帧的运动物体对应点的差值称作运动补偿（Motion Compensation, MC）。通过这种机制可以减少帧间预测的误差，提高帧间预测压缩效率。
+
+量化（Quantization）和熵编码（Entropy Coding）是预测、变换后的两个重要处理技术。变换后，数据在变换域中呈不均匀分布，能量主要集中在直流与低频区域，因此采用非均匀量化，对低频区域执行细量化，对高频区域执行粗量化，可以减小量化误差。量化是数据损失的过程，引入了失真，提升了压缩效率。熵编码表示一个符号的码字长度随符号出现概率变化，为高概率符号分配较短码字、为低概率符号分配较长码字，熵编码可以提供比等长编码更高的编码效率。
+
+视频编码的性能取决于编码码率、失真、计算复杂度三者的折中选择。考虑如何在限制的码率条件下，为编码选择合适的模式与参数以最小化编码失真的技术称为率失真优化\cite{sullivanRatedistortionOptimizationVideo1998}（Rate Distortion Optimization, RDO）
+
+以上介绍了视频编码中的核心技术，包括预测、变换编码、量化、率失真优化、熵编码等，实际应用中，组合运用上述技术以实现视频的高效压缩。
 \subsection{视频编码标准对比}
+
+视频编码标准指的是规定了所用的视频编码技术集合、相对应的编码结果比特流及编解码规范的标准。视频编码标准主要由ITU与ISO/IEC两大组织制定。ITU制定的视频编码标准为H.26X系列，广泛应用于基于网络传输的视频通信，ISO/IEC的动态图像专家组（Moving Picture Experts Group, MPEG）制定的MPEG系列视频编码标准主要应用于视频存储等。两大组织的合作已经产生了H.264/AVC、H.265/HEVC，再下一代的标准H.266/VVC也正在开发中。近年来一些新的视频编码标准进入市场，有VP8、VP9、Daala、Thor等，以及由提出这些标准的公司组成的开放媒体联盟（AOMedia）开发的下一代视频编码标准：AV1。
+
 不同视频编码标准的差异在于其编码效率、解码效率、计算复杂度、及专利费用等。不同视频编码标准的性能对比在操作上是非常困难的\cite{laudeComprehensiveVideoCodec2019}：
 % 有点偏题啊
 \begin{enumerate} [label=\arabic*)]
@@ -19,21 +31,21 @@
 
 \begin{table}[!hpt]
   \renewcommand{\arraystretch}{0.9}
-  \caption{常用视频编码标准对比\cite{laudeComprehensiveVideoCodec2019}}
+  \caption{常用视频编码标准对比}
   \label{tab:codec}
   \centering
-  \begin{tabular}{ccccc} \toprule
-    Codec & Year  & 编码复杂度 &  编码效率 & 专利费用 \\ \midrule
-    H.264/AVC & 2003 & $\ast $& $\ast $      & \$ \\
-    H.265/HEVC & 2013 & $\ast \ast $& $\ast \ast $ & \$\$ \\
-    VP9 & 2013  & $\ast \ast $& $\ast \ast $& free \\
-    AV1 & 2018 & $\ast\ast\ast $& $\ast\ast\ast $ & free \\
-    H.266/VVC & TBD & $\ast\ast\ast \ \ast $& $\ast\ast\ast \ \ast$ & \$\$
-    \\ \bottomrule
+  \begin{tabular}{cccc}
+  	\toprule
+  	  Codec    & Year &  编码效率   & 专利费用 \\ \midrule
+  	H.264/AVC  & 2003 & 50.7\%  &  \$  \\
+  	   VP9     & 2013 & 37.6\%  & free \\
+  	H.265/HEVC & 2013 &  /       & \$\$ \\
+  	   AV1     & 2018 & -3.8\%  & free \\
+  	H.266/VVC  & TBD  & -27.5\% & \$\$ \\ \bottomrule
   \end{tabular}
 \end{table}
 
-由于本文的重点不是对比不同视频编码标准，因此在此仅对当前常用的几个编码标准做定性比较。如表\ref{tab:codec}所示，MPEG/ITU系列视频编码标准约每十年更新一代，AOM系列的视频编码标准约每五年更新一代，每一代视频编码标准对比前一代标准在复杂度与编码效率均有提升。AOM系列的标准与MPEG/ITU系列相比的优势在于其免版税的特性。
+由于本文的重点不是对比不同视频编码标准，因此在此根据文献\cite{groisCodingEfficiencyComparison2016, akyaziComparisonCompressionEfficiency2018a, zhangComparingVVCHEVC2020}列出对当前常用的几个编码标准的简单比较。如表\ref{tab:codec}所示，MPEG/ITU系列视频编码标准约每十年更新一代，AOM系列的视频编码标准约每五年更新一代，每一代视频编码标准对比前一代标准在复杂度与编码效率均有提升。AOM系列的标准与MPEG/ITU系列相比的优势在于其免版税的特性。
 
 综合对比后选择AV1作为直播系统的编码标准，有以下考虑：
 \begin{enumerate} [label=\arabic*)]
@@ -55,8 +67,22 @@ AOMedia Video 1\cite{rivazAV1BitstreamDecoding2019}（AV1）是一种开放的�
 
 AOMedia的成员组成了完整的产业链，共同创建的AV1更是具有开放、免版税的特性，与需要缴纳专利费的HEVC不同，有利于AV1在开源项目中的使用，构建良好的生态系统。在功能上，AV1专为实时高质量视频分发（尤其是WebRTC）和更高的分辨率，更宽的色域，更高的帧速率，在各种带宽上对现代设备的可伸缩性设计，而不是当前主流视频格式H.264的典型使用场景。
 
-如图\ref{fig:av1-structure}，AV1使用经典的混合视频编码框架。AV1使用许多先进的编码工具\cite{chenOverviewCoreCoding2018}，包括更多样的分块方案，更多的帧内预测选项，从亮度预测色度\cite{trudeauPredictingChromaLuma2018}，针对屏幕内容的调色盘模式、帧内块复制\cite{liIntraBlockCopy2018}，更多的参考帧，更灵活的运动向量估计以及其他帧间预测工具。环路滤波和后处理使用了约束方向增强滤波器（CDEF）\cite{midtskogenAV1ConstrainedDirectional2017}和帧超分辨率、胶片颗粒合成\cite{norkinFilmGrainSynthesis2018}等工具。这些先进的编码工具使得AV1可以达到更高的编码效率。
+如图\ref{fig:av1-structure}，AV1使用经典的混合视频编码框架，包含许多先进的编码工具\cite{chenOverviewCoreCoding2018}，包括更多样的分块方案，更多的帧内预测选项，从亮度预测色度\cite{trudeauPredictingChromaLuma2018a}，针对屏幕内容的调色盘模式、帧内块复制\cite{liIntraBlockCopy2018}，更多的参考帧\cite{linEfficientAV1Video2018}，更灵活的运动向量估计以及其他帧间预测工具。环路滤波和后处理使用了约束方向增强滤波器（CDEF）\cite{midtskogenAv1ConstrainedDirectional2018}和帧超分辨率、胶片颗粒合成\cite{norkinFilmGrainSynthesis2018}等工具。这些先进的编码工具使得AV1可以达到更高的编码效率。
 
+\subsubsection{AV1多层预测帧结构}
+
+AV1具有更强大的帧间编码器，对参考帧和运动矢量进行了扩展。AV1将参考帧数从3个扩展到7个。除了VP9的最近过去（LAST）帧，遥远过去（GOLDEN）帧和临时过滤未来（ALTREF）帧之外，还添加了两个最近过去帧（LAST2和LAST3）和两个将来帧（BWDREF和ALTREF2）\cite{linEfficientAV1Video2018}。
+
+\begin{figure}[!htp]
+	\centering
+	\includegraphics[width=0.8\linewidth]{av1-multi-layer-structure.png}
+	\caption{AV1黄金帧组的多层预测框架\cite{chenOverviewCoreCoding2018}}
+	\label{fig:av1-multi-layer-structure}
+\end{figure}
+
+图\ref{fig:av1-multi-layer-structure}展示了黄金帧组的多层预测结构，其中自适应数量的帧共享相同的GOLDEN和ALTREF帧。 BWDREF是直接编码的超前帧，无需应用时间滤波，适合用作相对较短距离的后向参考。ALTREF2用作GOLDEN和ALTREF之间的帧的将来参考。所有新参考帧都可以通过单个预测模式选择，也可以组合成对以形成复合模式。AV1提供了丰富的参考帧对集合，同时提供了双向复合预测和单向复合预测，因此可以用更自适应和最优的方式对具有动态时间相关性特征的各种视频进行编码。
+
+\subsubsection{AV1开放比特流单元}
 本文不涉及过多的AV1编码工具原理，但是涉及AV1码流的相关知识。AV1码流被封装成“开放比特流单元（OBU）”这种低开销的比特流格式。每个OBU由一个\texttt{obu\_header}和相对应类型的obu载荷构成。AV1的OBU类型如表\ref{tab:obutype}所示，每个编码序列有一个\texttt{OBU\_SEQUENCE\_HEADER}包含该码流的序列编码信息；\texttt{OBU\_TEMPORAL\_DELIMITER}表示时间分割符，包含空载荷；\texttt{OBU\_FRAME\_HEADER}包含了编码的一帧的头信息；\texttt{OBU\_TILE\_GROUP}包含一个Tile内部的各个superblock分割类型、预测变换类型以及参数等解码需要的信息；\texttt{OBU\_FRAME}包含一个\texttt{OBU\_FRAME\_HEADER}和一个\texttt{OBU\_TILE\_GROUP}。在后续RTP封装的时候，由于RTP封装的payload大小限制，这些OBU会根据规则分割装入不同的RTP包。
 
 \begin{table}[!hpt]
@@ -83,9 +109,10 @@ AOMedia的成员组成了完整的产业链，共同创建的AV1更是具有开�
 
 \section{流媒体协议与封装协议选择}
 
-流媒体协议与封装格式的选择往往是相互关联的，一种流媒体协议可能会要求使用某种封装格式。下文会对不同流媒体协议进行对比，结合AV1相关的封装格式的情况，选择合适的流媒体协议。
+协议是一组规则，负责建立连接并通过网络连接传递数据。协议相互层叠以形成协议栈，每层协议可以专注于特定功能并相互协作，最底层协议作为基础，每个附加层都增加复杂性，不同的传输协议可能支持一系列可选功能，包括错误恢复，流控制以及对重传的支持。
+%介绍TCP UDP？
 
-图\ref{fig:protocol-latency}展示了不同流媒体传输协议的延迟水平和相对应的应用场景。流媒体协议可以大致分为两类，一类是有状态流媒体协议，另一类是基于HTTP的自适应流媒体协议，二者差异显著，各有不同的优势，下文将对二者进行分析对比。
+流媒体指的是一种在客户端接受到完整的媒体文件之前即可开始播放多媒体内容的形式。设计专用于传输流媒体的协议被称作流媒体协议。图\ref{fig:protocol-latency}展示了不同流媒体传输协议的延迟水平和相对应的应用场景。流媒体协议可以大致分为两类，一类是有状态流媒体协议，另一类是基于HTTP的自适应流媒体协议，二者差异显著，各有不同的优势，下文将对二者进行分析对比。
 
 \begin{figure}[!htp]
 	\centering
@@ -94,9 +121,11 @@ AOMedia的成员组成了完整的产业链，共同创建的AV1更是具有开�
 	\label{fig:protocol-latency}
 \end{figure}
 
+流媒体协议与封装格式的选择往往是相互关联的，一种流媒体协议可能会要求使用某种封装格式。下文会对不同流媒体协议进行对比，结合AV1相关的封装格式的情况，选择合适的流媒体协议。
+
 \subsection{有状态流媒体协议}
 
-有状态流媒体协议主要有RTMP、RTSP等，加上近年来比较热门的SRT协议。有状态流媒体协议一般延迟较低，但伸缩性较差。
+有状态流媒体协议主要有RTMP、RTSP等，加上近年来比较热门的SRT协议。有状态流媒体协议通常底层使用UDP协议，因而延迟较低，但伸缩性较差。
 
 \paragraph{RTMP} Real Time Messaging Protocol（实时消息传输协议）是Adobe的专有协议，旨在互联网上传输音视频数据。RTMP是基于TCP的协议，可维护持久连接并允许低延迟通信。为了平稳地传递流并传输尽可能多的信息，它将流分成多个片段，并在客户端和服务器之间动态协商其大小。由于以下原因等，RTMP难以应对当今的挑战：
 
@@ -185,4 +214,4 @@ AV1的支持封装协议有Matroska/WebM、ISOBMFF、RTP，AV1没有官方支持
 
 \section{本章小结}
 
-本章是本论文研究需要涉及的基础知识，简要介绍了AV1编码标准的相关信息，介绍了AV1码流封装成“开放比特流单元（OBU）”的方式；介绍了常用的流媒体传输协议，其中包括有状态协议和基于HTTP的自适应流媒体协议，以及常见的多媒体封装协议，并根据相关协议的特性，结合对AV1编码标准的支持性与低延迟的要求，最终为直播系统原型构建选择了RTP作为封装格式，RTSP作为传输协议，选择SRT作为上行传输协议。
+本章是本论文研究需要涉及的基础知识，简要介绍了视频编码与视频编码标准的基础概念、AV1编码标准的编码工具，特别是其多层预测框架，介绍了AV1码流封装成“开放比特流单元（OBU）”的方式；介绍了常用的流媒体传输协议，其中包括有状态协议和基于HTTP的自适应流媒体协议，以及常见的多媒体封装协议，并根据相关协议的特性，结合对AV1编码标准的支持性与低延迟的要求，最终为直播系统原型构建选择了RTP作为封装格式，RTSP作为传输协议，选择SRT作为上行传输协议。
