@@ -194,7 +194,7 @@
 			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_32.png}\label{fig:pi-32}}
 		\subcaptionbox{16x16块划分与PI关系图}
 			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_16.png}\label{fig:pi-16}}
-		\caption{HEARTHSTONE序列划分模式与感知划分指标PI关系图}
+		\caption{HEARTHSTONE序列划分模式与感知划分指标PI关系图（QP=31）}
 		\label{fig:jnd-part-PI-example}
 	\end{figure}
 	综合分析10个1080p游戏序列，取阈值T为非划分命中率大于50\%的值来均衡加速比与bdrate的损失。另外，考虑到量化参数对块划分的影响，不同QP下应设定不同的阈值PT来提高算法性能。在较小的QP下，视频编码会分配更多的码率，通过更仔细的搜索与块划分来得到更好的重建质量，提前终止划分的感知划分指标PI的阈值PT也相对设定更小。最终的阈值T选择如表\ref{tab:av1-jnd-part-th}所示。
