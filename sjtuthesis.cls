@@ -98,6 +98,7 @@
 \fi
 \RequirePackage{anyfontsize}
 \RequirePackage{xcolor}
+\RequirePackage{colortbl}
 \RequirePackage{graphicx}
 \RequirePackage{array}
 \RequirePackage{booktabs}

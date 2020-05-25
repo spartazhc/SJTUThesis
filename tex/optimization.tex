@@ -81,7 +81,7 @@
 	
 	\texttt{ffplay -fflags nobuffer -flags low\_delay -framedrop -probesize 32 -analyzeduration 0}
 \section{本章小结}
-  本章讲述了基于AV1的低延迟编码系统的构建，具体阐述了构建直播系统工作，原型直播系统的构建是后续优化的基础，为了实现AV1的RTSP协议传输，在FFmpeg中实现了对AV1码流的RTP封装与解封装逻辑。初始构建的直播系统原型系统延迟较高，将在本章与后续章节中阐述逐步优化的过程。基于所构建的直播系统，在系统层面进行的优化主要是针对SVT-AV1的高启动延迟的优化和一些组建的配置优化。通过优化malloc的调用与预启动SVT-AV1编码器解决。在系统层面进行优化后，由直播系统本身导致的额外延迟基本消除。
+  本章讲述了基于AV1的低延迟编码系统的构建，具体阐述了基于FFmpeg构建的直播系统的各组件，原型直播系统的构建是后续优化的基础，为了实现AV1的RTSP协议传输，在FFmpeg中实现了对AV1码流的RTP封装与解封装逻辑。初始构建的直播系统原型系统延迟较高，将在本章与后续章节中阐述逐步优化的过程。基于所构建的直播系统，在系统层面进行的优化主要是针对SVT-AV1的高启动延迟的优化和一些组建的配置优化。通过优化malloc的调用与预启动SVT-AV1编码器解决。在系统层面进行优化后，由直播系统本身导致的额外延迟基本消除。
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -341,13 +341,13 @@ SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节�
 	\end{figure}
 
 \subsection{分Tile编码优化}
-	在AV1视频编码中，Tile\cite{fuldsethfuldsethTiles}表示尽管可以独立编码和解码的矩形区域。由于Tile划分，会降低像素数据中存在的相关性，降低了编码效率；但是，Tile的划分增加了编码器的并行效率，可有效降低编码延迟\cite{misraOverviewTilesHEVC2013}。
+	在AV1视频编码中，Tile\cite{a.fuldsethfuldsethTiles}表示尽管可以独立编码和解码的矩形区域。由于Tile划分，会降低像素数据中存在的相关性，降低了编码效率；但是，Tile的划分增加了编码器的并行效率，可有效降低编码延迟\cite{misraOverviewTilesHEVC2013}。
 
 	AV1编码标准支持分Tile编码。根据AV1比特流规范\cite{rivazAV1BitstreamDecoding2019}中Annex A.3，对于1920x1080p@30fps的应用，限制Tile最大划分数为32，限制Tile最大列划分数为8。在AV1中，Tile的划分数量必须为2的指数次。在SVT-AV1编码器中，分Tile编码可以提高ENCDEC过程的并行程度，从而降低ENCDEC过程的延迟。ENCDEC过程延迟的降低使得单帧编码延迟下降，这也将使依赖于单帧编码延迟的调度延迟PAK\_sche和PM\_sche下降。
 
   出于性能考虑，SVT-AV1默认的分Tile机制限制在只能分行，不能分列。这导致编码过程中，每个Tile编码的波形并行的Tile宽度没有发生变化，在一行上的传播次数不变，使得分Tile的编码延迟增益十分有限。为了达到更低的编码延迟，这里选择牺牲一部分编码效率来提高并行率，降低编码延迟。
 
-  图\ref{tab:tiles-bdrate}展示了不同Tile划分下的BD-Rate变化，图\ref{tab:tiles-latency}展示了不同Tile划分下的延迟变化，因为量化参数QP影响编码延迟，QP越大，编码速度越快，编码延迟越低，这里取QP为31的数据做图，表格中的空白部分表示在由于Tile划分数量的限制被禁止的划分情况。图\ref{tab:tiles-bdrate}表明，分Tile时编码效率有少量损失，且编码效率随划分数量增加而递减；总Tile划分数量一定时，单方向划分与双方向划分相比会损失更多的编码效率。
+  图\ref{tab:tiles-bdrate}展示了不同Tile划分下的BD-Rate变化，图\ref{tab:tiles-latency}展示了不同Tile划分下的延迟变化，因为量化参数QP影响编码延迟，QP越大，编码速度越快，编码延迟越低，这里取QP为31的数据做图，表格中的灰色部分表示在由于Tile划分数量的限制被禁止的划分情况。图\ref{tab:tiles-bdrate}表明，分Tile时编码效率有少量损失，且编码效率随划分数量增加而递减；总Tile划分数量一定时，单方向划分与双方向划分相比会损失更多的编码效率。
 
 	\begin{table}[!hpt]
 		%	\renewcommand{\arraystretch}{0.9}
@@ -356,11 +356,11 @@ SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节�
 		\centering
 		\begin{tabular}{|c|c|c|c|c|c|c|}
 			\hline
-			\diagbox[height=25pt]{col}{row} &    1    &   2    &   4    &   8    &   16   &   32   \\ \hline
-			1                & 0.00\%  & 0.65\% & 1.51\% & 1.86\% & 2.06\% & 3.92\% \\ \hline
-			2                & -0.48\% & 0.21\% & 2.04\% & 2.48\% & 3.03\% &        \\ \hline
-			4                & 0.28\%  & 0.90\% & 3.27\% & 3.96\% &        &        \\ \hline
-			8                & 1.88\%  & 2.72\% & 4.85\% &        &        &        \\ \hline
+			\diagbox[height=25pt]{col}{row} &    1    &   2    &   4    &          8          &         16          &         32          \\ \hline
+			               1                & 0.00\%  & 0.65\% & 1.51\% &       1.86\%        &       2.06\%        &       3.92\%        \\ \hline
+			               2                & -0.48\% & 0.21\% & 2.04\% &       2.48\%        &       3.03\%        & \cellcolor{gray!50} \\ \hline
+			               4                & 0.28\%  & 0.90\% & 3.27\% &       3.96\%        & \cellcolor{gray!50} & \cellcolor{gray!50} \\ \hline
+			               8                & 1.88\%  & 2.72\% & 4.85\% & \cellcolor{gray!50} & \cellcolor{gray!50} & \cellcolor{gray!50} \\ \hline
 		\end{tabular}
 	\end{table}
   图\ref{tab:tiles-latency}表明，对行方向的Tile划分对编码延迟降低的贡献很小，而对列方向划分对编码延迟降低更有效果。这个结果符合理论预期，因为1920x1080的帧比例为16：9，在波形并行模型下，决定波形传播总延迟的是Tile中超级块数量更多的行或列方向，因此划分更多列方向有利于均衡行与列方向的超级块数量，从而降低总编码延迟。
@@ -375,11 +375,11 @@ SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节�
 		\centering
 		\begin{tabular}{|c|c|c|c|c|c|c|}
 			\hline
-			\diagbox[height=25pt]{col}{row} &  1  &  2  &  4  &  8  & 16  & 32  \\ \hline
-			               1                & 240 & 260 & 264 & 240 & 220 & 156 \\ \hline
-			               2                & 246 & 180 & 167 & 155 & 153 &     \\ \hline
-			               4                & 198 & 162 & 132 & 136 &     &     \\ \hline
-			               8                & 164 & 143 & 122 &     &     &     \\ \hline
+			\diagbox[height=25pt]{col}{row} &  1  &  2  &  4  &          8          &         16          &         32          \\ \hline
+			               1                & 240 & 260 & 264 &         240         &         220         &         156         \\ \hline
+			               2                & 246 & 180 & 167 &         155         &         153         & \cellcolor{gray!50} \\ \hline
+			               4                & 198 & 162 & 132 &         136         & \cellcolor{gray!50} & \cellcolor{gray!50} \\ \hline
+			               8                & 164 & 143 & 122 & \cellcolor{gray!50} & \cellcolor{gray!50} & \cellcolor{gray!50} \\ \hline
 		\end{tabular}
 	\end{table}
 
