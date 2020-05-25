@@ -186,14 +186,18 @@
 
  使用twitch的10个1080p游戏序列分析超级块划分方式与感知划分指标PI的关系。经过测试分析，以HearthStone序列为例，其划分模式与感知划分指标PI有如图\ref{fig:jnd-part-PI-example}的关系，可以发现，非划分模式的感知划分指标PI相对较小，并且与划分模式的感知划分指标PI具有一定区分性，因此可以通过感知划分指标PI来指导块划分时的提前终止。而相对应的，划分模式的感知划分指标PI的统计特性并不能找到明显的区分性，因此通过感知划分指标PI难以指导块划分时的提前划分。造成这个区别的原因可能是一般来说游戏序列中的平坦区域比较极端化，与提前终止划分的算法契合度高，而纹理复杂区域各有各的特点，共同特性较少。
 
-  % 这张图需要重新画
-  \begin{figure}[!htp]
-    \centering
-    \includegraphics[width=\textwidth]{HEARTHSTONE_part.png}
-    \caption{HEARTHSTONE序列划分模式与感知划分指标PI关系图}
-   \label{fig:jnd-part-PI-example}
-  \end{figure}
-
+	\begin{figure}[!hbtp]
+		\centering
+		\subcaptionbox{64x64块划分与PI关系图}
+			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_64.png}\label{fig:pi-64}}
+		% \hspace{1cm}
+		\subcaptionbox{32x32块划分与PI关系图}
+			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_32.png}\label{fig:pi-32}}
+		\subcaptionbox{16x16块划分与PI关系图}
+			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_16.png}\label{fig:pi-16}}
+		\caption{HEARTHSTONE序列划分模式与感知划分指标PI关系图}
+		\label{fig:jnd-part-PI-example}
+	\end{figure}
 	综合分析10个1080p游戏序列，取阈值T为非划分命中率大于50\%的值来均衡加速比与bdrate的损失。另外，考虑到量化参数对块划分的影响，不同QP下应设定不同的阈值PT来提高算法性能。在较小的QP下，视频编码会分配更多的码率，通过更仔细的搜索与块划分来得到更好的重建质量，提前终止划分的感知划分指标PI的阈值PT也相对设定更小。最终的阈值T选择如表\ref{tab:av1-jnd-part-th}所示。
 
   \begin{table}[!hpt]
