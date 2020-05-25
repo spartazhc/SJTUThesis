@@ -5,7 +5,7 @@
 
   \begin{figure}[!htp]
     \centering
-    \includegraphics[width=0.7\textwidth]{av1-sys.png}
+    \includegraphics[width=0.7\textwidth]{av1-sys.pdf}
     \caption{AV1低延迟直播系统原型}
    \label{fig:av1-sys}
   \end{figure}
@@ -38,15 +38,23 @@
 
 \subsection{所搭建直播系统原型延迟分析}
 %enumerate or table? 测数据太麻烦了
-	所搭建直播系统原型延迟由各组件在各阶段的延迟累加而成，其中，主要的延迟如下：
+	如图\ref{fig:av1-sys-lat}，所搭建直播系统原型延迟由各组件在各阶段的延迟累加而成，其中，主要的延迟如下：
 	\begin{enumerate} [label=\arabic*)]
-		\item 主播端x264编码延迟
-		\item 主播端推流到转码服务器SRT协议延迟
-		\item 转码服务器SVT-AV1编码器启动延迟：$6\sim 7$s
-		\item 转码服务器SVT-AV1编码延迟：$\sim 3$s
-		\item 客户端从转码服务器拉流RTSP延迟
-		\item 客户端播放器缓冲区延迟
+		\item 主播端x264编码延迟$\mathrm{L_{x264}}$；
+		\item 主播端推流到转码服务器SRT协议延迟$\mathrm{L_{srt}}$；
+		\item 转码服务器SVT-AV1编码器启动延迟：$\mathrm{L_{svtav1\_init}}\approx6\sim 7$s；
+		\item 转码服务器SVT-AV1编码延迟：$\mathrm{L_{svtav1}}\approx 3$s；
+		\item 客户端从转码服务器拉流RTSP延迟$\mathrm{L_{rtsp}}$；
+		\item 客户端播放器缓冲区延迟$\mathrm{L_{ffplay}}$。
 	\end{enumerate}
+
+  \begin{figure}[!htp]
+		\centering
+		\includegraphics[width=0.7\textwidth]{av1-sys-lat.pdf}
+		\caption{AV1低延迟直播系统原型延迟分布图}
+		\label{fig:av1-sys-lat}
+	\end{figure}
+
 \subsection{SVT-AV1的高启动延迟优化}
   搭建的AV1低延迟直播系统原型带有$6\sim 7$秒左右SVT-AV1带来的高启动延迟。延迟产生的原因有两个：
 
