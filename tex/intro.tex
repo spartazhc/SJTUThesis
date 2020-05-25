@@ -14,7 +14,7 @@ AV1使用了许多高级编码工具\cite{chenOverviewCoreCoding2018}，对比H.
 
 AV1编码器的开源实现有：aom\cite{AV1SourceCode2020}，SVT-AV1\cite{ScalableVideoTechnology2020}，rav1e\cite{Rav1eGitRepository2020}。aom作为AV1的参考编码器，注重算法的验证性，因此在速度的优化上有欠缺。SVT-AV1是Intel和Netflix开源的AV1编码器，目标是为点播（video on demand, VOD）、实时编码、转码等应用场景提供AV1编码。SVT-AV1由于其软件设计，是目前最快的AV1编码器实现。
 
-Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableVideoTechnology2019}编码器体系结构是专为x86处理器设计的，并且特别针对Intel®Xeon®可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。目前，SVT-AV1正在活跃开发中，但仍缺少在编码延迟上的优化，无法胜任直播低延迟场景的应用。
+Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableVideoTechnology2019}编码器体系结构是专为x86处理器设计的，并且特别针对Intel Xeon可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。目前，SVT-AV1正在活跃开发中，但仍缺少在编码延迟上的优化，无法胜任直播低延迟场景的应用。
 
 本课题将推进SVT-AV1编码器在低延迟场景下的优化，促进AV1编码标准在实时场景下的落地。
 
@@ -37,23 +37,23 @@ Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableV
 
 本课题的目标是实现基于AV1编码标准的低延迟直播系统，从多维度对系统延迟进行优化。经过前期对AV1开源编码器的调研，本文最终选择SVT-AV1作为AV1编码器，FFmpeg作为转码框架，SRT协议作为上行协议，RTSP作为下行协议，搭建了低延迟直播系统原型。
 
-本文的主要研究工作包括对比研究视频传输协议、学习AV1编码标准与编码工具，深入学习研究SVT编码器架构等。学习了JND指标，并据此对SVT-AV1编码器进行了快速编码的优化，并学习实现了向量加速。
+本文的主要研究工作包括对比研究视频传输协议、学习AV1编码标准与编码工具，深入学习研究SVT编码器架构等。学习JND模型，并对JND模型计算实现了向量加速，据此对SVT-AV1编码器进行了快速编码的优化。
 
 本文完成了基于SVT-AV1和FFmpeg的低延迟直播系统原型实现，并在此基础上完成了：
 \begin{enumerate} [label=\arabic*)]
     \item 对直播系统的优化，包括：
         \begin{itemize}
-            \item FFmpeg中SVT-AV1编码器的预启动优化，消除SVT-AV1编码器的高启动延迟；
-            \item FFmpeg中AV1的RTP封装简单实现，使FFmpeg可以对AV1进行RTP封装，RTSP传输；
+            \item FFmpeg中SVT-AV1编码器的预启动优化，消除编码器高启动延迟；
+            \item FFmpeg中AV1的RTP封装简单实现，使FFmpeg可以对AV1进行RTP封装，RTSP传输。
         \end{itemize}
     \item 对SVT-AV1编码器的优化，包括：
         \begin{itemize}
-            \item 对SVT-AV1多线程框架下，编码过程的延迟profile工具实现，助力后续分析优化；
+            \item 对SVT-AV1多线程框架下，编码过程的延迟profile工具实现，使用该工具分析了SVT架构下的延迟分布；
             \item 系统地测试分析SVT-AV1的编码器参数设定对编码延迟的影响，指导SVT-AV1的低延迟编码配置；
-            \item 基于JND对SVT-AV1的快速编码优化，JND计算的向量加速；
-            \item 对RESOURCE的EOS机制的优化
-            \item 竖向切tile优化编码延迟
+            \item 对RESOURCE的EOS机制的优化；
+            \item 测试分析了SVT架构下Tile划分与编码效率和编码延迟的变化关系，为选择合适的Tile划分方案提供指导。
         \end{itemize}
+    \item 提出了块级JND模型，并根据该模型实现了超级块划分提前终止算法。
 \end{enumerate}
 
 \section{论文结构安排}
@@ -62,8 +62,10 @@ Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableV
 
 第一章为绪论，简要介绍了本课题的研究背景和意义，回顾了直播行业的发展，并阐述了本文的主要研究工作。
 
-第二章为关键技术介绍，简要介绍了AV1视频编码标准，对比了常见的流媒体传输协议与封装协议SIP协议，结合AV1对封装协议的支持性与低延迟、可扩展性的要求，为直播系统原型构建选择合适的流媒体传输协议与封装协议。
+第二章为关键技术介绍，简要介绍了视频编码，特别是AV1视频编码标准，对比了常见的流媒体传输协议与封装协议，结合AV1对封装协议的支持性与低延迟、可扩展性的要求，为直播系统原型构建选择合适的流媒体传输协议与封装协议。
 
-第三章为本课题AV1低延迟直播系统原型的构建与系统级的延迟分析与优化，主要包括SVT-AV1的高启动延迟优化与FFmpeg中AV1的RTP封装实现。
+第三章为基于AV1的低延迟直播系统原型的构建与系统级的延迟分析与优化，主要包括SVT-AV1的高启动延迟优化与FFmpeg中AV1的RTP封装实现。
 
-第四章为对SVT-AV1编码器的低延迟优化，包括对SVT架构的介绍、对SVT架构的编码延迟profile工具，以及对SVT架构在延迟上的一些优化。最后，给出了基于JND的快速编码优化算法，进一步降低编码复杂度与编码延迟。
+第四章为对SVT-AV1编码器的低延迟优化，包括对SVT架构的介绍、对SVT架构的编码延迟profile工具，以及对SVT架构在延迟上的分析优化。
+
+第五章为基于人眼感知的超级块划分快速算法，介绍了人眼视觉特性与JND模型，提出了块级JND模型和对JND模型计算的向量加速。对所提超级块快速划分算法进行了介绍，并对算法实现结果进行了测试与分析。
