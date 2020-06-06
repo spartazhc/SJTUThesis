@@ -100,6 +100,7 @@
 \RequirePackage{xcolor}
 \RequirePackage{colortbl}
 \RequirePackage{graphicx}
+\RequirePackage{float}
 \RequirePackage{array}
 \RequirePackage{booktabs}
 \RequirePackage{longtable}
@@ -205,7 +206,7 @@
   \sjtu@def@label{algorithm}{算法}
   \sjtu@def@label{listalgorithm}{算法索引}
   \sjtu@def@label{nomenclature}{主要符号对照表}
-  \sjtu@def@label{summary}{全文总结}
+  \sjtu@def@label{summary}{总结与展望}
   \sjtu@def@label{acknowledgements}{致\quad 谢}
   \sjtu@def@label{publications}%
                  {攻读\sjtu@label@degreetypeChi 学位期间已发表或录用的论文}

@@ -1,38 +1,35 @@
 \chapter{基于人眼感知特性的超级块划分快速算法}
-
+	对编码器的感知优化是近年来的一个热门优化方向，根据人眼视觉特性可以在视觉无损的情况下节省更多码率，提高编码效率。
   % 能和学长的论文在介绍部分有多少相似性？会查重否？
   \section{人眼视觉感知特性} \label{sec:HVS}
-  人眼的生理学构造决定了它独特的视觉感知特性。通过研究人眼视觉感知特性，我们可以将人眼视觉系统的主观感受与接收的客观信息建立联系，并将二者的关系数学建模分析。多年的发展以来，已经有一些人眼视觉感知特性被开发，并且对应有较为成熟的理论解释。下面将介绍部分视觉感知特性：亮度特性、视觉掩蔽效应、视觉注意机制等。
+  人眼的生理学结构决定了它独有的视觉感知特性。通过研究人眼视觉感知特性，我们可以将人眼视觉系统的主观感受与接收的客观信息建立联系，并将二者的关系数学建模分析。多年的发展以来，已经有一些人眼视觉感知特性被开发，并有相关的理论解释支持。下面将介绍部分视觉感知特性：亮度特性、视觉掩蔽效应、视觉注意机制等。
+
+  \paragraph{亮度自适应特性} 亮度自适应特性指当受到多种不同强度的光照，人眼视觉系统可以通过调节对光强的敏感度来适应较大的亮度范围。通过亮度特性，人眼可以调节出的对高达百倍的亮度差的适应性。亮度自适应具体体现为：对暗部的适性应、对亮部的适应性和局部亮度适应性。
+
+  由于亮度自适应特性，人类视觉系统对绝对亮度不敏感，对相对亮度敏感，这被称为亮度对比度敏感特性：能够通过视觉目标和背景亮度差值调整自身的亮度适应性。如图\ref{fig:brightness}，尽管五个圆形图案的亮度完全相同，但随着外部正方形背景亮度的逐渐降低，人眼感知结果是圆形图案的亮度从左到右逐渐升高。
 
   \begin{figure}[!htp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{brightness.png}
-    \caption{亮度自适应特性}
-  \label{fig:brightness}
-  \end{figure}
-
-  \paragraph{亮度自适应特性} 亮度自适应特性指的是，当受到多种不同强度的光照下，人眼视觉系统可以通过调节自身对于光强的敏感度来适应较大的亮度范围。通过亮度特性人眼可以调节出的对高达百倍的亮度差的适应性，具体体现在三个方面：对暗部的适性应、对亮部的适应性和局部亮度适应性。由于亮度自适应特性，人类视觉系统对绝对亮度不敏感，对相对亮度敏感，这被称为亮度对比度敏感特性：能够通过视觉目标和背景亮度差值调整自身的亮度感知能力。如图\ref{fig:brightness}，五个圆形图案的亮度相同，但随着圆形外部正方形背景亮度的不断降低，人眼感知结果是圆形图案的亮度从左到右逐渐升高。
-
-  % \begin{figure}[!htp]
-  %   \centering
-  %   \includegraphics[width=0.8\textwidth]{mach-effect.png}
-  %   \caption{马赫效应}
-  % \label{fig:mach}
-  % \end{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{brightness.png}
+		\caption{亮度自适应特性}
+		\label{fig:brightness}
+	\end{figure}
 
   % 人眼视觉对图像边缘处的增强感受。它指的是当目标物体亮度发生突变，人眼会感觉物体亮度较高的一侧更亮，亮度较暗的一侧会更暗。这种现象导致在发生变化的边缘处人眼会感觉到出现了一条分割线，但是实际上从客观数值上是检测不到这条分割线的。如图\ref{fig:mach}所示，为马赫效应的示意图，其中每个灰度带都相差一个固定的灰度值，人眼在对每两个相邻的灰度带进行观测时，会感觉中间有一条分割线对其进行分割。该效应反映了人类视觉系统的对比增强特性，能够增强目标轮廓，有利于人眼检测出视觉信息上的特定目标。这种特性显示出人类视觉系统会自动增强亮度变化较大的物体的边缘信息，所以在对视觉感知算法进行研究时需要特地考虑边缘的信息。
 
-  \paragraph{视觉掩蔽效应} 视觉掩蔽效应指人类视觉系统在处理多个视觉信号时，由于各视觉信号相互干扰而无法处理全部信号的信息的现象。其具体表现为当目标信号与掩蔽信号同时存在时，导致目标信号被掩蔽信号影响，使其难以察觉。例如在图像压缩中，一些失真出现在特定区域中时不易被察觉，但出现在某些区域时会变得非常明显。研究发现有许多影响掩蔽效应的因素，其中包括视觉信号频率、运动幅度、色度、亮度、纹理复杂度等。常见的视觉掩蔽效应有：运动掩蔽效应、对比掩蔽效应、纹理掩蔽效应等。以下简要介绍三种常见的视觉掩蔽效应。
+  \paragraph{视觉掩蔽效应} 视觉掩蔽效应指人类视觉系统在处理空间或时间上紧密耦合的多个视觉信号时，由于各视觉信号相互干扰而无法处理全部信号的信息的现象。当目标信号与掩蔽信号同时存在时，导致目标信号被掩蔽信号影响，难以察觉。
+
+  研究发现有许多影响掩蔽效应的信号，其中包括目标运动幅度、纹理复杂度、色度、亮度等。常见的视觉掩蔽效应有：运动掩蔽效应、对比掩蔽效应、纹理掩蔽效应等。以下简要介绍三种常见的视觉掩蔽效应。
   \begin{description}
     \item [1) 运动掩蔽效应]
-    运动掩蔽效应指的是当目标范围物体运动幅度较大时或相邻视频帧变化较大时，人类视觉系统对这些运动较大的区域敏感度较低，对于其中的细节感知能力较差，难以察觉到这些区域的失真。相对运动幅度较低的区域，运动幅度较大的区域能够容纳更高的图像失真。
+    运动掩蔽效应指的是当目标范围物体运动幅度较大时或相邻视频帧变化较大时，人类视觉系统对运动较大的区域敏感度较低，对于其中的细节感知能力较差，难以察觉到这些区域的失真。相对运动幅度较低的区域，运动幅度较大的区域能够容纳更高的图像失真。
     \item [2) 对比度掩蔽效应]
-    对比度掩盖效果是指人类视觉系统在比较不同灰度级别的区域的时候产生的掩蔽效果。人眼会根据图像亮度的变化而改变其对各个区域的敏感度，这种影响通常发生在图像的边缘区域。
+    对比度掩蔽效应是指在比较不同对比度的区域时产生的掩蔽效果。人眼会根据图像对比度变化调整对不同区域的敏感度，高对比度区域具有更强的掩蔽效应。
     \item [3) 纹理掩蔽效应]
     人类视觉系统对纹理复杂度较高区域中的失真不敏感。对于视觉中不同纹理复杂度的内容，人眼纹理复杂度较高的区域出现的失真相比纹理复杂度较低的区域的失真更难被人类视觉系统所察觉，
   \end{description}
 
-  \paragraph{视觉注意机制} 当人类视觉系统处理视觉信号时，并不会对所有视觉信号均给予相同的注意力，而是会将注意力快速切换到更感兴趣的目标物体，对其它不感兴趣的物体则给予较低的关注，这类主动提取感兴趣区域的机制被称作视觉注意机制\cite{borjiStateoftheArtVisualAttention2013}。存在两种提取视觉注意力区域的模式，一种是自上而下，由人类主观意志驱动将注意力集中到某特定区域；另一种是自下而上，在图像区域的显著性影响下，自然地将注意力集中到显著性较强的区域，是被动的过程。两个视觉注意区域模型相互影响，共同完成图像信息的提取与分析处理。因为自上而下的模型会根据不同的处理需求将注意力分配到不同区域，是不确定的，因此当前的算法一般研究自底向上的模式，通过分析基本的图像特性来寻找图像中的显著区域。
+  \paragraph{视觉注意机制} 当人类视觉系统处理视觉信号时，并不会对所有视觉信号均给予相同的注意力，而是会将注意力快速切换到更感兴趣的目标物体，对其它不感兴趣的物体则给予较低的关注，这类主动提取感兴趣区域的机制称为视觉注意机制\cite{borjiStateoftheArtVisualAttention2013}。存在两种提取视觉注意力区域的模式，一种是自上而下，由人类主观意志驱动将注意力集中到某特定区域；另一种是自下而上，在图像区域的显著性影响下，自然地将注意力集中到显著性较强的区域，是被动的过程。两个视觉注意区域模型相互影响，共同完成图像信息的提取与分析处理。因为自上而下的模型会根据不同的处理需求将注意力分配到不同区域，具有不确定性，因此当前的算法一般研究自底向上的模式，通过分析基本的图像特性来寻找图像中的显著区域。
 
   人类视觉系统会将较多的注意力分配到视觉注意机制确定的显著区域，与非显著区域对比，显著区域对图像的质量在视觉上有更大的影响。因此，区分是否显著区域并分别处理可以提高图像主观视觉质量。已有许多基于视觉注意机制的研究应用在视频编码领域，Bai等人提出的基于视觉感兴趣区域（Region of Interest， ROI）的码率控制方案\cite{baiSaliencyBasedRate2016}，通过将码率预算优先分配到视觉感兴趣区域从而提高编码性能。
 
@@ -52,7 +49,7 @@
 		\label{fig:bg-luma}
 	\end{figure}
 
-  \paragraph{亮度适应性} 如\ref{sec:HVS}小节，人类视觉系统会根据背景亮度的大小不一表现出不同的视觉敏感度，称为亮度自适应特性（Luminance Adaptation, LA）。文献\cite{chun-hsienchouPerceptuallyTunedSubband1995}表明，人眼的视觉阈值与背景亮度呈非线性关系，其关系如图\ref{fig:bg-luma}所示，当背景亮度低于127时，视觉可见性阈值以幂函数形式下降，当背景亮度高于127时，视觉可见性阈值随背景亮度的增加线性增长。据此，将亮度适应性与视觉阈值的关系建模为基于背景亮度的分段函数\cite{chun-hsienchouPerceptuallyTunedSubband1995}，如式\ref{equ:la}所示:
+  \paragraph{亮度适应性} 如\ref{sec:HVS}小节，根据背景亮度的差异，人类视觉系统会调节不同的视觉敏感度，称为亮度自适应特性（Luminance Adaptation, LA）。文献\cite{chun-hsienchouPerceptuallyTunedSubband1995}表明，人眼的视觉阈值与背景亮度呈非线性关系，其关系如图\ref{fig:bg-luma}所示，当背景亮度低于127时，视觉可见性阈值以幂函数形式下降，在8位编码亮度下，当背景亮度高于127时，视觉可见性阈值随背景亮度的增加线性增长。据此，将亮度适应性与视觉阈值的关系建模为基于背景亮度的分段函数\cite{chun-hsienchouPerceptuallyTunedSubband1995}，如式\ref{equ:la}所示:
 
   \begin{equation} \label{equ:la}
     LA(i, j) = \begin{cases}
@@ -88,7 +85,7 @@
     \caption{背景亮度卷积核}
 	\end{figure}
 
-  \paragraph{对比度掩蔽效应} 对比度掩蔽效应是一种常见且重要掩蔽效应，指在观看对比度不同的区域时产生的掩蔽效应，相比低对比度的区域，高对比度的区域具有更强的视觉掩蔽效应。根据文献\cite{wuPatternMaskingEstimation2013}，对比度掩蔽效应（Constast Masking, CM）可以建模关于亮度对比度的非线性函数，由此得到对比度掩蔽效应因子$CM$，如式\ref{equ:cm}所示：
+  \paragraph{对比度掩蔽效应} 对比度掩蔽效应是一种常见且重要掩蔽效应，指观看对比度不同的区域时产生的掩蔽效应，相比低对比度的区域，高对比度的区域具有更强的视觉掩蔽效应。根据文献\cite{wuPatternMaskingEstimation2013}，对比度掩蔽效应（Constast Masking, CM）可以建模关于亮度对比度的非线性函数，由此得到对比度掩蔽效应因子$CM$，如式\ref{equ:cm}所示：
 
   \begin{equation} \label{equ:cm}
     CM(i, j) = 0.115 \cdot \frac{\alpha \cdot L_c(i, j)^{2.4}}{L_c(i, j)^2 + \beta^2},
@@ -182,24 +179,25 @@
   其中$d$表示划分深度，$64\times 64$划分深度为0，依次递增到$8\times 8$划分深度为3 ，$k$表示父块序号，$m, n$表示子块相对序号。PI大表明编码子块间特征差异大，更需要对其进行划分，PI小表明编码块内特征差异小，可以考虑提前终止编码块划分结构的搜索。
 
 %  \subsubsection{感知划分指标分析}
-
- 使用twitch的10个1080p游戏序列分析超级块划分方式与感知划分指标PI的关系。经过测试分析，以HearthStone序列为例，其划分模式与感知划分指标PI有如图\ref{fig:jnd-part-PI-example}的关系，可以发现，非划分模式的感知划分指标PI相对较小，并且与划分模式的感知划分指标PI具有一定区分性，因此可以通过感知划分指标PI来指导块划分时的提前终止。而相对应的，划分模式的感知划分指标PI的统计特性并不能找到明显的区分性，因此通过感知划分指标PI难以指导块划分时的提前划分。造成这个区别的原因可能是一般来说游戏序列中的平坦区域比较极端化，与提前终止划分的算法契合度高，而纹理复杂区域各有各的特点，共同特性较少。
-
-	\begin{figure}[!hbtp]
+	\begin{figure}[hbtp]
 		\centering
 		\subcaptionbox{64x64块划分与PI关系图}
-			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_64.png}\label{fig:pi-64}}
+		[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_64.png}\label{fig:pi-64}}
 		% \hspace{1cm}
 		\subcaptionbox{32x32块划分与PI关系图}
-			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_32.png}\label{fig:pi-32}}
+		[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_32.png}\label{fig:pi-32}}
 		\subcaptionbox{16x16块划分与PI关系图}
-			[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_16.png}\label{fig:pi-16}}
+		[0.32\textwidth]{\includegraphics[width=0.325\textwidth]{pi_16.png}\label{fig:pi-16}}
 		\caption{HEARTHSTONE序列划分模式与感知划分指标PI关系图（QP=31）}
 		\label{fig:jnd-part-PI-example}
 	\end{figure}
+
+ 使用twitch的10个1080p游戏序列分析超级块划分方式与感知划分指标PI的关系。经过测试分析，以HearthStone序列为例，其划分模式与感知划分指标PI有如图\ref{fig:jnd-part-PI-example}的关系，可以发现，非划分模式的感知划分指标PI相对较小，并且与划分模式的感知划分指标PI具有一定区分性，因此可以通过感知划分指标PI来指导块划分时的提前终止。而相对应的，划分模式的感知划分指标PI的统计特性并不能找到明显的区分性，因此通过感知划分指标PI难以指导块划分时的提前划分。造成这个区别的原因可能是一般来说游戏序列中的平坦区域比较极端化，与提前终止划分的算法契合度高，而纹理复杂区域各有各的特点，共同特性较少。
+
+
 	综合分析10个1080p游戏序列，取阈值T为非划分命中率大于50\%的值来均衡加速比与bdrate的损失。另外，考虑到量化参数对块划分的影响，不同QP下应设定不同的阈值PT来提高算法性能。在较小的QP下，视频编码会分配更多的码率，通过更仔细的搜索与块划分来得到更好的重建质量，提前终止划分的感知划分指标PI的阈值PT也相对设定更小。最终的阈值T选择如表\ref{tab:av1-jnd-part-th}所示。
 
-  \begin{table}[!hpt]
+  \begin{table}[htbp]
     \renewcommand{\arraystretch}{0.9}
     \caption{PI提前终止划分阈值}
     \label{tab:av1-jnd-part-th}
@@ -238,46 +236,48 @@
   \subsection{实验环境配置}
   实验使用个人笔记本电脑完成，实验系统配置如表\ref{tab:os}所示，实验使用SVT-AV1配置如表\ref{tab:svt}所示，实验测试了All Intra和Low Delay P两种GoP结构，QP取$\{23, 31, 39, 47\}$（由于MINECRAFT序列在QP取值较低时的VMAF非常接近，为了得到正常的BD-Rate-VMAF，对于MINECRAFT序列取QP为$\{31, 39, 47, 55\}$)。
 
+  \begin{table}[htbp]
+		\renewcommand{\arraystretch}{0.9}
+		\caption{实验系统配置}
+		\label{tab:os}
+		\centering
+		\begin{tabular}{lc} \toprule
+			项目& 参数  \\ \midrule
+			OS:     &Manjaro 20.0 Lysia\\
+			Kernel: & x86\_64 Linux 5.6.7-1-MANJARO\\
+			CPU:    &Intel Core i7-6700HQ (8) @ 3.500GHz\\
+			RAM:    &16GB\\
+			GCC:    &v9.3.0\\
+			SVT-AV1: & v0.8.1\\ \bottomrule
+		\end{tabular}
+	\end{table}
+  \begin{table}[htbp]
+		\renewcommand{\arraystretch}{0.9}
+		\caption{SVT-AV1编码器参数配置}
+		\label{tab:svt}
+		\centering
+		\begin{tabular}{lc} \toprule
+			项目& 参数  \\ \midrule
+			preset     &8\\
+			pred-struct& LDP\\
+			lookahead    &0\\
+			fps    &60\\
+			GoP    &60\\
+			asm    & up tp avx2\\
+			bitdepth & 8\\
+			hierarchicalLevels  & 4 \\
+			rc & CQP\\ \bottomrule
+		\end{tabular}
+	\end{table}
   编码测试结果包括比特率Bitrate，峰值信噪比（Peak Signal to Noise Ratio, PSNR），视频多方法评估融合（Video Multimethod Assessment Fusion, VMAF\cite{liPracticalPerceptualVideo}），\ref{sec:svt-profile}章节中提出的SVT-AV1框架的profile工具被用于记录编码时各模块的CPU使用时间，取ENCDEC过程的CPU时间总和作为编码时间来评估算法应用前后的编码复杂度。
 
   测试序列取twitch的8个1080p游戏序列，一方面游戏直播作为一大重要的直播类型，有着很高的研究价值，另一方面，游戏场景通常是屏幕内容类型的人工场景，场景中简单纹理较多，适合所提算法的测试。
 
   测试时使用命令\texttt{sudo cpupower frequency-set -g performance}将CPU频率策略调整为“Performance”以锁定CPU频率，以确保按照CPU使用时间计算的算法计算量对比准确。
 
-  \begin{table}[!hpt]
-    \renewcommand{\arraystretch}{0.9}
-    \caption{实验系统配置}
-    \label{tab:os}
-    \centering
-    \begin{tabular}{lc} \toprule
-      项目& 参数  \\ \midrule
-      OS:     &Manjaro 20.0 Lysia\\
-      Kernel: & x86\_64 Linux 5.6.7-1-MANJARO\\
-      CPU:    &Intel Core i7-6700HQ (8) @ 3.500GHz\\
-      RAM:    &16GB\\
-      GCC:    &v9.3.0\\
-      SVT-AV1: & v0.8.1\\ \bottomrule
-    \end{tabular}
-  \end{table}
 
-  \begin{table}[!hpt]
-    \renewcommand{\arraystretch}{0.9}
-    \caption{SVT-AV1编码器参数配置}
-    \label{tab:svt}
-    \centering
-    \begin{tabular}{lc} \toprule
-      项目& 参数  \\ \midrule
-      preset     &8\\
-      pred-struct& LDP\\
-      lookahead    &0\\
-      fps    &60\\
-      GoP    &60\\
-      asm    & up tp avx2\\
-      bitdepth & 8\\
-      hierarchicalLevels  & 4 \\
-      rc & CQP\\ \bottomrule
-    \end{tabular}
-  \end{table}
+
+
 
 	\subsection{实验测试质量指标}
 
@@ -291,7 +291,7 @@
 
 	由此，PSNR（dB单位）定义为：
 	\begin{equation}
-	\mathrm{PSNR} = 10 \times \log_10 \left(\frac{\mathrm{MAX}_I^2}{\mathrm{MSE}}\right),
+	\mathrm{PSNR} = 10 \times \log_{10} \left(\frac{\mathrm{MAX}_I^2}{\mathrm{MSE}}\right),
 	\end{equation}
 	其中，$\mathrm{MAX}_I$表示原始图像的最大可能像素值。
 	\paragraph{VMAF}
@@ -307,7 +307,7 @@
 
 	文献\cite{liPracticalPerceptualVideo,barmanEvaluationVideoQuality2018a, leeComparisonObjectiveQuality2017}的测试结果表明，VMAF在多种数据集上的表现均好于其他主观评价指标，特别的，文献\cite{barmanEvaluationVideoQuality2018a}展示了对于游戏视频场景，VMAF的性能远高于其他VQA指标。
 
-	\paragraph{BD-Rate} Bjontegaard速率差（BD-Rate）允许在保持与客观指标所测量的相同质量水平时，定量比较编解码器提供的比特率降低。速率变化计算为质量范围内速率的平均百分比差异。
+	\paragraph{BD-Rate} Bjontegaard速率差\cite{Bjontegaard2001CalculationOA}（BD-Rate）允许在保持与客观指标所测量的相同质量水平时，定量比较编解码器提供的比特率降低。速率变化计算为质量范围内速率的平均百分比差异。
 
   \subsection{实验结果分析}
 
@@ -493,7 +493,7 @@
        \\\hline
     \end{tabular}
   \end{table}
-
+\vspace{-10pt}
   \subsubsection{实验结果主观评估}
 
   图\ref{fig:dota2-part}展示了在DOTA2序列上，原始算法与所提算法的超级块划分对比图，其中图\ref{fig:dota2-origin-part}展示了SVT-AV1原始算法的超级块划分，图\ref{fig:dota2-jnd-part}展示了应用基于JND的快速划分算法后的超级块划分效果，图\ref{fig:dota2-md-part}展示了基于JND调整md-stage的快速划分算法后的超级块划分效果。对比发现，在纹理简单、一致性较高的区域，应用了所提算法后，更倾向于划分较大的块；对于纹理复杂的区域，二者的划分比较一致，均有细致的分块。
@@ -525,7 +525,13 @@
     \caption{原始算法与所提算法的解码对比图}
     \label{fig:dota2-decode}
   \end{figure}
-
+\vspace{-10pt}
   \section{本章小结}
 
-  本章提出了基于人眼感知特性的超级块快速划分算法。首先介绍了人眼视觉特性，包括亮度自适应性、视觉掩蔽效应和视觉注意机制，介绍了像素级JND模型的提出，以及根据像素级JND模型优化得到的块级JND模型。为进一步加速JND模型的计算，对背景亮度计算和亮度方差计算运用了SIMD方法进行加速，加速后只需1.7ms即可完成对一个1080p视频帧的JND模型计算。对JND感知阈值与AV1超级块划分结果进行统计分析，总结得到了与块划分相关的感知划分指标，并根据感知划分指标在twitch的游戏视频序列中的统计特性，分析确定了块划分提前终止划分的阈值。根据该阈值实现块划分时的提前终止，可以跳过大量的搜索过程，减少大量编码复杂度，降低编码时间。实验结果表明，在SVT-AV1的最快编码预设的基础上，在损失2\%左右编码性能的前提下，本章所提出的超级块快速划分算法在All Intra和Low Delay P两种GoP结构上均可以减少15\%左右的编码时间，进一步调整md-stage后可以在All Intra下减少30\%的编码时间。
+  本章提出了基于人眼感知特性的超级块快速划分算法。首先介绍了人眼视觉特性，包括亮度自适应性、视觉掩蔽效应和视觉注意机制，介绍了像素级JND模型的提出，以及根据像素级JND模型优化得到的块级JND模型。
+
+  为进一步加速JND模型的计算，对背景亮度计算和亮度方差计算运用了SIMD方法进行加速，加速后只需1.7ms即可完成对一个1080p视频帧的JND模型计算。
+
+  对JND感知阈值与AV1超级块划分结果进行统计分析，总结得到了与块划分相关的感知划分指标，并根据感知划分指标在twitch的游戏视频序列中的统计特性，分析确定了块划分提前终止划分的阈值。根据该阈值实现块划分时的提前终止，可以跳过大量的搜索过程，减少大量编码复杂度，降低编码时间。
+
+  实验结果表明，在SVT-AV1的最快编码预设的基础上，在损失2\%左右编码性能的前提下，本章所提出的超级块快速划分算法在All Intra和Low Delay P两种GoP结构上均可以减少15\%左右的编码时间，进一步调整md-stage后可以在All Intra下减少30\%的编码时间。

@@ -1,7 +1,7 @@
 \chapter{AV1低延迟直播系统构建与优化}
 
-\section{AV1低延迟直播系统构建}
-	一个通用的直播系统需要包括采集端、业务服务器、CDN部署以及播放端。本文所搭建的AV1低延迟直播系统实验性系统，目标是探索基于AV1的直播系统的低延迟极限。AV1低延迟直播系统原型如图\ref{fig:av1-sys}构建，主播端摄像头采集图像或使用录屏，进行H.264编码后，通过SRT协议传输到转码服务器，转码服务器使用FFmpeg，调用SVT-AV1编码器将接收到的码流进行H.264到AV1的转码，转码后进行RTP封装，通过RTSP协议传输到观众端解码播放。
+\section{AV1低延迟直播系统原型构建}
+	一个通用的直播系统需要包括采集端、业务服务器、CDN部署以及播放端。本文所搭建的AV1低延迟直播系统实验性系统，目标是探索基于AV1的直播系统的低延迟极限。在实际落地时，所提直播系统原型可以对应与边缘网络的服务。AV1低延迟直播系统原型如图\ref{fig:av1-sys}构建，主播端摄像头采集图像或使用录屏，进行H.264编码后，通过SRT协议传输到转码服务器，转码服务器使用FFmpeg，调用SVT-AV1编码器将接收到的码流进行H.264到AV1的转码，转码后进行RTP封装，通过RTSP协议传输到观众端解码播放。
 
   \begin{figure}[!htp]
     \centering
@@ -16,6 +16,7 @@
 		\item 转码服务器端：\texttt{ffmpeg, libSvtAv1Enc, libsrt}
 		\item 客户端：\texttt{ffplay, libdav1d}
 	\end{enumerate}
+
 \subsection{FFmpeg中AV1的RTP封装实现}
 	由于AV1编码的RTP封装协议\cite{RTPPayloadFormat}仍处于草案阶段，以及AV1的RTP封装协议主要用于WebRTC，在FFmpeg中并没有AV1编码的RTP封装支持，因此，为了实现AV1直播系统原型，实现了FFmpeg中AV1的RTP封装实现。
 
@@ -27,14 +28,16 @@
 		\centering
 		\includegraphics[width=4cm]{av1_rtp_hdr.png} \\
 		\raggedright
-		\texttt{Z}: 若第一个OBU元素是延续上一个packet的片段，设1，否则设0；\\
-		\texttt{Y}: 若最后一个OBU元素是一个会延续到下一个packet的片段，设1，否则设0；\\
-		\texttt{W}: 描述当前packet中的OBU元素数量；\\
-		\texttt{N}: 若当前packet是视频序列首个packet，设1，否则设0。\\
+		\footnotesize\qquad\qquad\texttt{Z}: 若第一个OBU元素是延续上一个packet的片段，设1，否则设0；\\
+		\qquad\qquad\texttt{Y}: 若最后一个OBU元素是一个会延续到下一个packet的片段，设1，否则设0；\\
+		\qquad\qquad\texttt{W}: 描述当前packet中的OBU元素数量；\\
+		\qquad\qquad\texttt{N}: 若当前packet是视频序列首个packet，设1，否则设0。\\
 		\caption{AV1聚合头部}
 		\label{fig:av1rtp-aggr}
 	\end{figure}
 \section{AV1低延迟直播系统分析与优化}
+
+在本节中，将提出对所搭建直播系统原型的系统延迟分析与部分优化。
 
 \subsection{所搭建直播系统原型延迟分析}
 %enumerate or table? 测数据太麻烦了
@@ -94,7 +97,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{SVT-AV1编码器低延迟优化}
-
+随着AV1的比特流固定，AV1编码器正在活跃开发。AV1的开源编码器实现有：aom\cite{AV1SourceCode2020}，rav1e\cite{barbatoRustAV1Encoder2019}，SVT-AV1\cite{ScalableVideoTechnology2020}。aom作为AV1的参考编码器，注重算法的验证性，因此在速度的优化上有欠缺。rav1e的目标成为可以覆盖所有使用场景，比aom更快的编码器，rav1e使用Rust语言编写。SVT-AV1是Intel和Netflix开源的AV1编码器，目标是为点播（video on demand, VOD）、实时编码、转码等应用场景提供AV1编码。SVT-AV1由于其软件设计，是目前最快的AV1编码器实现。因此选择SVT-AV1作为AV1编码器。
 \section{SVT架构}
   Intel的可伸缩视频技术（Scalable Video Technology, SVT\cite{ScalableVideoTechnology2019})编码器体系结构是专为x86处理器设计的，并且特别针对Intel Xeon可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。
 
@@ -180,10 +183,15 @@
 
   \subsection{SVT架构的多阶段分区、模式选择决策} \label{sec:pd-md}
   给定一个超级块可以考虑的大量块划分方式和大量预测模式，使用所有可用编码工具评估所有选项来收敛到最优分块和编码模式在计算上将非常昂贵。因此，SVT架构使用分阶段决策的方法\cite{EncoderDesignSVTAV1}，有分阶段分区决策（Partition Decisions, PD）和分阶段模式选择（Mode Decisions, MD）。
-
+	\begin{figure}[htbp]
+		\centering
+		\includegraphics[width=0.7\textwidth]{pd-stages.png}
+		\caption{分阶段分区决策\cite{EncoderDesignSVTAV1}}
+		\label{fig:pd}
+	\end{figure}
   如图\ref{fig:pd}所示，向PD阶段0输入运动估计结果以及所有可能的分区情况$N_0$，使用比较基本的工具和指标来初步评估不同候选的适应性，并将其中最优的$N_1$种候选传递到PD阶段1，并在后续PD阶段中考虑更复杂的预测和指标来评估。多阶段PD决策后渠道最优的分区决策和模式选择。
 
-  \begin{table}[!hpt]
+  \begin{table}[htbp]
     \renewcommand{\arraystretch}{0.8}
     \caption{MD阶段处理的9类编码工具候选}
     \label{tab:av1-classes}
@@ -202,18 +210,9 @@
     \end{tabular}
   \end{table}
 
-  如图\ref{fig:md}所示，在每个PD阶段中，包含多个模式选择MD阶段。PD阶段输入的候选分为9个类别，如表\ref{tab:av1-classes}分别对应AV1的不同编码工具。引入候选类别的主要思想是确保重要类型的候选有机会出现在最后的MD阶段，并在该阶段与其他候选类别的最佳候选竞争。在每个MD阶段中使用预测工具与性能指标评估各个候选，对候选进行筛选，只有性能最好的一部分候选被传递到下一个MD阶段，越靠后的MD阶段中，更多更细致的预测工具与性能指标会被使用。
+  如图\ref{fig:md}所示，在每个PD阶段中，包含多个模式选择MD阶段。PD阶段输入的候选分为9个类别，表\ref{tab:av1-classes}中展示了9个候选类别分别对应的AV1不同编码工具。引入候选类别的主要思想是确保重要类型的候选有机会出现在最后的MD阶段，并在该阶段与其他候选类别的最佳候选竞争。在每个MD阶段中使用预测工具与性能指标评估各个候选，对候选进行筛选，只有性能最好的一部分候选被传递到下一个MD阶段，越靠后的MD阶段中，更多更细致的预测工具与性能指标会被使用。
 
-
-
-  \begin{figure}[!htp]
-    \centering
-    \includegraphics[width=0.7\textwidth]{pd-stages.png}
-    \caption{分阶段分区决策\cite{EncoderDesignSVTAV1}}
-  \label{fig:pd}
-  \end{figure}
-
-  \begin{figure}[!htp]
+  \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{md-stages.png}
     \caption{单次分区决策中的多阶段模式选择\cite{EncoderDesignSVTAV1}}
@@ -231,7 +230,7 @@
 
   表\ref{tab:svt-profile}是编码一帧1080p分辨率的视频帧的延迟测量结果，为了便于展示，表格中省略了一些内容。通过分析延迟测量的结果可以了解在SVT架构下各过程的运行情况，便于分析延迟的产生以及产生对应的优化方案。
 
-  \begin{table}[!hpt]
+  \begin{table}[htbp]
     \renewcommand{\arraystretch}{0.8} % 减小行间距
     \caption{SVT-AV1处理一帧时各过程延迟Profile}
     \label{tab:svt-profile}
@@ -265,9 +264,7 @@
 \section{SVT架构的延迟分析}
 运用\ref{sec:svt-profile}章节提到的SVT架构编码延迟profile工具对SVT-AV1编码器进行测试，延迟测试在Intel Xeon Platinum 8280进行，实验系统配置如表\ref{tab:os-8280}，测试使用1080p序列，编码器配置如表\ref{tab:svt-lat}。对测试结果的分析包括对各编码过程使用的CPU时间与各编码过程的延迟分布两类。
 
-本章的延迟测试与章节\ref{sec:jnd-test}中对JND算法的测试使用平台不同，分别是在搭载Intel Xeon Platinum 8280的服务器与搭载Intel Core i7-6700HQ的个人笔记本上完成。原因是SVT-AV1在个人笔记本下的编码速度远达不到实时水平。因此所有关于延迟的测试都在服务器上完成，而对所提算法进行评估时，可以从使用CPU时间进行分析比较，为实验方便考虑而在个人笔记本电脑上完成。为了降低操作系统调度造成的测试结果波动，测试时将CPU的频率策略调整到“Performance”。
-
-\begin{table}[!hpt]
+\begin{table}[htbp]
 	\renewcommand{\arraystretch}{0.9}
 	\caption{延迟测试实验系统配置}
 	\label{tab:os-8280}
@@ -283,7 +280,9 @@
 	\end{tabular}
 \end{table}
 
-\begin{table}[!hpt]
+本章的延迟测试与章节\ref{sec:jnd-test}中对JND算法的测试使用平台不同，分别是在搭载Intel Xeon Platinum 8280的服务器与搭载Intel Core i7-6700HQ的个人笔记本上完成。原因是SVT-AV1在个人笔记本下的编码速度远达不到实时水平。因此所有关于延迟的测试都在服务器上完成，而对所提算法进行评估时，可以从使用CPU时间进行分析比较，为实验方便考虑而在个人笔记本电脑上完成。为了降低操作系统调度造成的测试结果波动，测试时将CPU的频率策略调整到“Performance”。
+
+\begin{table}[htbp]
 	\renewcommand{\arraystretch}{0.9}
 	\caption{SVT-AV1编码器延迟测试参数配置}
 	\label{tab:svt-lat}
@@ -304,15 +303,15 @@
 
 图\ref{fig:cpu-ana}展示了SVT-AV1编码器的各编码过程所用的CPU时间占比，测试发现，SVT-AV1编码器的CPU密集型任务主要分布在ENCDEC、ME、PD三个编码过程中，其中ENCDEC过程所用的CPU时间占总CPU时间的55\%，ME过程所用的CPU时间占总CPU时间的34\%。
 
-\begin{figure}[!htp]
+\begin{figure}[htbp]
 		\centering
 		\includegraphics[width=0.75\textwidth]{cputime_analysis.png}
 		\caption{SVT-AV1编码器各编码过程使用CPU时间分析图}
 		\label{fig:cpu-ana}
 \end{figure}
-图\ref{fig:cpu-ana}展示了SVT-AV1编码器编码延迟在各编码过程中的分布，测试结果表明，SVT-AV1的编码延迟主要由层级LDP结构下调度产生，特别集中在PM过程和PD过程的调度上，而上述提到的CPU密集型任务ENCDEC过程与ME过程，则由于在SVT架构下的高度并行化在延迟分布上的占比低于其CPU时间使用占比。
+图\ref{fig:lat-ana}展示了SVT-AV1编码器编码延迟在各编码过程中的分布，测试结果表明，SVT-AV1的编码延迟主要由层级LDP结构下调度产生，特别集中在PM过程和PD过程的调度上，而上述提到的CPU密集型任务ENCDEC过程与ME过程，则由于在SVT架构下的高度并行化在延迟分布上的占比低于其CPU时间使用占比。
 
-\begin{figure}[!htp]
+\begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.75\textwidth]{latency_analysis.png}
 	\caption{SVT-AV1编码器编码延迟在各编码过程分布图}
@@ -329,7 +328,7 @@ GoP层级会影响PM\_sche的等待时间，但是减少GoP层级并不能降低
 
 \paragraph{overhead} SVT架构中各个编码过程实例化为不同数量的线程，各编码过程之间的数据传递和控制管理通过SVT系统资源管理器控制。过程间通信不可避免的有一些额外开销，这里的overhead表示了这些架构引起的开销总和。
 
-\section{SVT架构的延迟优化}
+\section{SVT架构的延迟优化\label{sec:svt-optimization}}
 
 SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节需要进一步优化，本章提出了对SVT架构在低延迟上的一些优化实践。
 
@@ -341,7 +340,7 @@ SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节�
 \subsection{PD过程的滑动窗口优化}
 	在上一章节的分析中提到PD过程中因为滑动窗口机制产生的PD\_sche延迟，可以通过关闭场景变化检测将该滑动窗口的宽度设定为0，从而消除这部分的延迟。图\ref{fig:lat-ana-pd}展示了优化后的延迟测试结果，与优化前的图\ref{fig:lat-ana}相比，占总延迟高达40\%的PD\_sche延迟完全消除，平均编码延迟从优化前$\sim 420$ms降低至$\sim 240$ms。
 
-	\begin{figure}[!htp]
+	\begin{figure}[htbp]
 		\centering
 		\includegraphics[width=0.75\textwidth]{latency_analysis_pd.png}
 		\caption{优化PD\_sche后SVT-AV1编码器编码延迟在各编码过程分布图}
@@ -397,7 +396,7 @@ SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节�
 	\section{本章小结}
 
 	本章阐述了对于SVT-AV1编码器的低延迟优化工作。首先简要介绍了SVT-AV1编码器的架构、其系统资源管理器的原理、SVT架构中的三重并行与多阶段分区、模式选择决策。然后，介绍了对于SVT-AV1架构的编码延迟profile工具，该工具对后续的优化方向与测试结果起指导作用。分析了SVT-AV1编码器的的编码延迟来源，并对延迟来源的主要组成部分进行了分析。根据延迟分析结果，对SVT架构进行了延迟优化，包括：
-	\begin{enumerate}
+	\begin{enumerate}[label=\arabic*)]
 		\item 对RESOURCE过程的EOS优化，解决了EOS机制导致的1帧输入延迟；
 		\item 消除了在PD过程中因为滑动窗口机制产生的高PD\_sche延迟；
 		\item 启用分tile编码，并分析了不同Tile划分对编码效率和编码延迟的影响，为后续选择最优的编码效率-编码延迟Tile划分方案提供了指导。

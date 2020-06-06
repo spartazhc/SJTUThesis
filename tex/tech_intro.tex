@@ -6,6 +6,7 @@
 
 \section{视频编码标准}
 
+本章将对视频编码进行简要介绍，并对比分析常用视频编码标准的编码效率与专利费用情况。并对AV1视频编码标准进行介绍，包括AV1的编码框架与编码工具、AV1的研究进展、AV1的多层预测帧结构，以及与下文对AV1进行RTP封装相关的AV1开放比特流单元（OBU）。
 \subsection{视频编码概述}
 
 视频编码技术利用视频在时间和空间维度上的冗余性，对原始的视频序列进行压缩，减小视频文件的码率，以便于存储和传输。视频编码技术发展中，有两类重要的编码技术：预测编码与变换编码。预测编码通过分析临近像素在时间与空间上的相关性，利用已经编码的像素对需要编码的像素进行预测，只需对预测误差进行编码，因为残差信息相比原始像素的数据量更小，可以获得编码增益。变换编码对空间域下的图像进行某种变换，得到变换域中的数据表达，改变数据分布以减少有效数据量。将两种编码技术结合使用的方式称作混合编码，使用混合编码可以获得比单独使用一种编码技术更高的压缩效率。
@@ -17,7 +18,7 @@
 视频编码的性能取决于编码码率、失真、计算复杂度三者的折中选择。考虑如何在限制的码率条件下，为编码选择合适的模式与参数以最小化编码失真的技术称为率失真优化\cite{sullivanRatedistortionOptimizationVideo1998}（Rate Distortion Optimization, RDO）。
 
 以上介绍了视频编码中的核心技术，包括预测、变换编码、量化、率失真优化、熵编码等，实际应用中，组合运用上述技术以实现视频的高效压缩。
-\subsection{视频编码标准对比}
+\subsection{视频编码标准对比\label{sec:codec-comparison}}
 
 视频编码标准指的是规定了所用的视频编码技术集合、相对应的编码结果比特流及编解码规范的标准。视频编码标准主要由ITU与ISO/IEC两大组织制定。ITU制定的视频编码标准为H.26X系列，广泛应用于基于网络传输的视频通信，ISO/IEC的动态图像专家组（Moving Picture Experts Group, MPEG）制定的MPEG系列视频编码标准主要应用于视频存储等。两大组织的合作已经产生了H.264/AVC、H.265/HEVC，再下一代的标准H.266/VVC也正在开发中。近年来一些新的视频编码标准进入市场，有VP8、VP9、Daala、Thor等，以及由提出这些标准的公司组成的开放媒体联盟（AOMedia）开发的下一代视频编码标准：AV1。
 
@@ -67,11 +68,13 @@ AOMedia Video 1\cite{rivazAV1BitstreamDecoding2019}（AV1）是一种开放的�
 
 AOMedia的成员组成了完整的产业链，共同创建的AV1更是具有开放、免版税的特性，与需要缴纳专利费的HEVC不同，有利于AV1在开源项目中的使用，构建良好的生态系统。在功能上，AV1专为实时高质量视频分发（尤其是WebRTC）和更高的分辨率，更宽的色域，更高的帧速率，在各种带宽上对现代设备的可伸缩性设计，而不是当前主流视频格式H.264的典型使用场景。
 
-如图\ref{fig:av1-structure}，AV1使用经典的混合视频编码框架，包含许多先进的编码工具\cite{chenOverviewCoreCoding2018}，包括更多样的分块方案，更多的帧内预测选项，从亮度预测色度\cite{trudeauPredictingChromaLuma2018a}，针对屏幕内容的调色盘模式、帧内块复制\cite{liIntraBlockCopy2018}，更多的参考帧\cite{linEfficientAV1Video2018}，更灵活的运动向量估计以及其他帧间预测工具。环路滤波和后处理使用了约束方向增强滤波器（CDEF）\cite{midtskogenAv1ConstrainedDirectional2018}和帧超分辨率、胶片颗粒合成\cite{norkinFilmGrainSynthesis2018}等工具。这些先进的编码工具使得AV1可以达到更高的编码效率。
+如图\ref{fig:av1-structure}，AV1使用经典的混合视频编码框架，包含许多先进的编码工具\cite{chenOverviewCoreCoding2018}，包括更多样的分块方案，更多的帧内预测选项，从亮度预测色度\cite{trudeauPredictingChromaLuma2018a}，针对屏幕内容的调色盘模式、帧内块复制\cite{liIntraBlockCopy2018}，更多的参考帧\cite{linEfficientAV1Video2018}，更灵活的运动向量估计以及其他帧间预测工具。环路滤波和后处理使用了约束方向增强滤波器（CDEF）\cite{midtskogenAv1ConstrainedDirectional2018}和环路滤波帧超分辨率\cite{joshiInloopFrameSuperresolution2019}、胶片颗粒合成\cite{norkinFilmGrainSynthesis2018}等工具。这些先进的编码工具使得AV1可以达到更高的编码效率。
 
+AV1最近的研究进展有基于JND的RDO感知优化\cite{zhuJNDbasedPerceptualRate2019}、用机器学习的方法加速AV1编码\cite{suMachineLearningAccelerated2019, dingCNNbasedInloopFiltering2019}，快速算法，包括快速帧间预测决策树算法\cite{kimFastInterPredictionBased2019}块划分快速算法\cite{guoFastBlockStructure2018}、模式选择快速算法\cite{jeongFastIntraMode2019}、变换模式选择的快速算法优化\cite{luEfficientRatedistortionApproximation2018}等，对AV1编码的研究正在稳步发展。
 \subsubsection{AV1多层预测帧结构}
 
-AV1具有更强大的帧间编码器，对参考帧和运动矢量进行了扩展。AV1将参考帧数从3个扩展到7个。除了VP9的最近过去（LAST）帧，遥远过去（GOLDEN）帧和临时过滤未来（ALTREF）帧之外，还添加了两个最近过去帧（LAST2和LAST3）和两个将来帧（BWDREF和ALTREF2）\cite{linEfficientAV1Video2018}。
+
+AV1使用了许多先进的编码工具，值得一提的是AV1更更强大的帧间编码器。AV1对参考帧和运动矢量进行了扩展，将参考帧数从3个扩展到7个。除了VP9的最近过去（LAST）帧，遥远过去（GOLDEN）帧和临时过滤未来（ALTREF）帧之外，还添加了两个最近过去帧（LAST2和LAST3）和两个将来帧（BWDREF和ALTREF2）\cite{linEfficientAV1Video2018}。
 
 \begin{figure}[!htp]
 	\centering
@@ -180,7 +183,7 @@ AV1的支持封装协议有Matroska/WebM、ISOBMFF、RTP，AV1没有官方支持
 
 \subsection{AV1低延迟直播系统的传输与封装协议选择}
 
-在直播系统的传输与封装协议选择时，有三个选择标准：1. 必须是AV1编码标准支持的；2. 尽量满足低延迟的互联网传输。基于这两点，由表\ref{tab:protocol}有以下分析：
+因为在章节\ref{sec:codec-comparison}中选择了AV1编码标准作为直播系统的编码，在直播系统的传输与封装协议选择时，有两个选择标准：1. 必须是AV1编码标准支持的；2. 尽量满足低延迟的互联网传输。基于这两点，由表\ref{tab:protocol}有以下分析：
 
 \begin{enumerate} [label=\arabic*)]
   \item 对于基于HTTP的自适应流媒体传输协议，HLS对封装格式的需求是MPEG-TS或fmp4，前者AV1没有官方的协议支持，后者包含在对ISOBMFF的支持中，可以实现；对于DASH，AV1支持使用WebM封装或fmp4封装。但基于HTTP的自适应流媒体传输协议的延迟一般较高；
@@ -190,7 +193,7 @@ AV1的支持封装协议有Matroska/WebM、ISOBMFF、RTP，AV1没有官方支持
   \item 对于WebRTC，虽然它有着最优秀的延迟性能，但是由于其设计是面向视频会议，伸缩性较差，不适合作为热流直播的协议选择。
 \end{enumerate}
 
-综上，综合考虑支持性和延迟、扩展性，选择RTSP作为AV1低延迟直播系统原型的传输协议。
+综上，综合考虑支持性和延迟、伸缩性（Scalability，指通过简单的增加硬件配置而使服务处理能力呈线性增长的能力），选择RTSP作为AV1低延迟直播系统原型的传输协议。
 
 % 加入LHLS / CMAF？
 \begin{table}[!hpt]
@@ -198,7 +201,7 @@ AV1的支持封装协议有Matroska/WebM、ISOBMFF、RTP，AV1没有官方支持
   \label{tab:protocol}
   \centering
   \begin{tabular}{cccc} \toprule
-    协议     & 封装格式       & 延迟     & 可扩展性\\ \midrule
+    协议     & 封装格式       & 延迟     & 伸缩性\\ \midrule
     HLS     & MPEG-TS, fmp4 & 10-45s  & good  \\
     DASH    & WebM, fmp4    & 10-45s  & good  \\
     RTMP    & /             & 5s      & normal \\

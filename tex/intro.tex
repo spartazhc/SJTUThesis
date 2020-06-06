@@ -12,7 +12,7 @@
 AV1使用了许多高级编码工具\cite{chenOverviewCoreCoding2018}，对比H.265/HEVC与VP9等编码标准达到了更高的编码效率\cite{laudeComparisonJEMAV12018,akyaziComparisonCompressionEfficiency2018}，但这是以相当大的额外的计算复杂度实现的，这可能会限制AV1编码标准在实际应用中的收益。当前AV1的编码器实现尚不完善，编码速度与HEVC和AVC等的标准的成熟实现（如x264，x265）相比较低，未经充分优化，在编码延迟上更是亟须优化的挑战。因此，减少编码器运行时间、降低编码延迟且对标准编码效率的影响有限的算法将非常有益。
 % AV1作为较新的编码标准，相关优化研究处于起步阶段，但有以往在编码上的经验可以参考，提出了各种快速算法：基于速率失真模型精度的快速帧内模式决策[[5]](https://ieeexplore.ieee.org/abstract/document/8793367), 基于决策树的AV1快速帧间预测 [[6]](https://ieeexplore.ieee.org/abstract/document/8683580)，多分辨率视频编码中的快速块结构确定[[7]](https://ieeexplore.ieee.org/document/8486492)[[8]](https://ieeexplore.ieee.org/document/8416611)等。
 
-AV1编码器的开源实现有：aom\cite{AV1SourceCode2020}，SVT-AV1\cite{ScalableVideoTechnology2020}，rav1e\cite{Rav1eGitRepository2020}。aom作为AV1的参考编码器，注重算法的验证性，因此在速度的优化上有欠缺。SVT-AV1是Intel和Netflix开源的AV1编码器，目标是为点播（video on demand, VOD）、实时编码、转码等应用场景提供AV1编码。SVT-AV1由于其软件设计，是目前最快的AV1编码器实现。
+AV1编码器的开源实现有：aom\cite{AV1SourceCode2020}，rav1e\cite{barbatoRustAV1Encoder2019}，SVT-AV1\cite{ScalableVideoTechnology2020}。aom作为AV1的参考编码器，注重算法的验证性，因此在速度的优化上有欠缺。SVT-AV1是Intel和Netflix开源的AV1编码器，目标是为点播（video on demand, VOD）、实时编码、转码等应用场景提供AV1编码。SVT-AV1由于其软件设计，是目前最快的AV1编码器实现。
 
 Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableVideoTechnology2019}编码器体系结构是专为x86处理器设计的，并且特别针对Intel Xeon可扩展处理器进行了大幅优化。SVT架构本身与编码标准无关，它允许将编码器内核拆分为独立运行的线程，每个线程处理视频编码流水线的不同部分。这些线程在不同的处理器内核上并行运行，极大加速了视频编码。SVT-AV1是SVT架构的一个应用实例。目前，SVT-AV1正在活跃开发中，但仍缺少在编码延迟上的优化，无法胜任直播低延迟场景的应用。
 
@@ -58,7 +58,7 @@ Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableV
 
 \section{论文结构安排}
 
-本文一共分为4个章节，每一章节的内容安排如下：
+本文一共分为6个章节，每一章节的内容安排如下：
 
 第一章为绪论，简要介绍了本课题的研究背景和意义，回顾了直播行业的发展，并阐述了本文的主要研究工作。
 
@@ -69,3 +69,5 @@ Intel的可伸缩视频技术（Scalable Video Technology, SVT）\cite{ScalableV
 第四章为对SVT-AV1编码器的低延迟优化，包括对SVT架构的介绍、对SVT架构的编码延迟profile工具，以及对SVT架构在延迟上的分析优化。
 
 第五章为基于人眼感知的超级块划分快速算法，介绍了人眼视觉特性与JND模型，提出了块级JND模型和对JND模型计算的向量加速。对所提超级块快速划分算法进行了介绍，并对算法实现结果进行了测试与分析。
+
+第六章是对本文总体工作的一些测试。包括对SVT-AV1的多方面优化后的延迟结果与编码效率变化，对构建的直播系统原型的总体延迟测试。
