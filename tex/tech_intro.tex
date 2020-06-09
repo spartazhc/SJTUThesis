@@ -6,21 +6,21 @@
 
 \section{视频编码标准}
 
-本章将对视频编码进行简要介绍，并对比分析常用视频编码标准的编码效率与专利费用情况。并对AV1视频编码标准进行介绍，包括AV1的编码框架与编码工具、AV1的研究进展、AV1的多层预测帧结构，以及与下文对AV1进行RTP封装相关的AV1开放比特流单元（OBU）。
+本章将对简要介绍视频编码理论，对比分析常用视频编码标准的编码效率与专利费用情况。并对AV1视频编码标准进行介绍，包括AV1的编码框架与编码工具、AV1的研究进展、AV1的多层预测帧结构，以及与下文对AV1进行RTP封装相关的AV1开放比特流单元（OBU）。
 \subsection{视频编码概述}
 
 视频编码技术利用视频在时间和空间维度上的冗余性，对原始的视频序列进行压缩，减小视频文件的码率，以便于存储和传输。视频编码技术发展中，有两类重要的编码技术：预测编码与变换编码。预测编码通过分析临近像素在时间与空间上的相关性，利用已经编码的像素对需要编码的像素进行预测，只需对预测误差进行编码，因为残差信息相比原始像素的数据量更小，可以获得编码增益。变换编码对空间域下的图像进行某种变换，得到变换域中的数据表达，改变数据分布以减少有效数据量。将两种编码技术结合使用的方式称作混合编码，使用混合编码可以获得比单独使用一种编码技术更高的压缩效率。
 
-为了进一步提高压缩效率，在混合编码框架中加入了针对运动目标的运动估计和运动补偿机制。通过运动估计（Motion Estimation, ME）得到物体的运动矢量（Motion Vector, MV），根据运动矢量计算前后帧的运动物体对应点的差值称作运动补偿（Motion Compensation, MC）。通过这种机制可以减少帧间预测的误差，提高帧间预测压缩效率。
+为了进一步提高压缩效率，在混合编码框架中加入了针对运动目标的运动估计和运动补偿机制。通过运动估计（Motion Estimation, ME）可以得到物体的运动矢量（Motion Vector, MV），根据运动矢量计算前后帧的运动物体对应点的差值称作运动补偿（Motion Compensation, MC）。通过这种机制可以减少帧间预测的误差，提高帧间预测压缩效率。
 
 量化（Quantization）和熵编码（Entropy Coding）是预测、变换后的两个重要处理技术。变换后，数据在变换域中呈不均匀分布，能量主要集中在直流与低频区域，因此采用非均匀量化，对低频区域执行细量化，对高频区域执行粗量化，可以减小量化误差。量化是数据损失的过程，引入了失真，提升了压缩效率。熵编码表示一个符号的码字长度随符号出现概率变化，为高概率符号分配较短码字、为低概率符号分配较长码字，熵编码可以提供比等长编码更高的编码效率。
 
-视频编码的性能取决于编码码率、失真、计算复杂度三者的折中选择。考虑如何在限制的码率条件下，为编码选择合适的模式与参数以最小化编码失真的技术称为率失真优化\cite{sullivanRatedistortionOptimizationVideo1998}（Rate Distortion Optimization, RDO）。
+视频编码的性能取决于编码码率、失真、计算复杂度三者的折中选择。考虑如何在限制的码率条件下，为编码选择合适的模式与参数以最小化编码失真的技术被称为率失真优化\cite{sullivanRatedistortionOptimizationVideo1998}（Rate Distortion Optimization, RDO）。
 
 以上介绍了视频编码中的核心技术，包括预测、变换编码、量化、率失真优化、熵编码等，实际应用中，组合运用上述技术以实现视频的高效压缩。
 \subsection{视频编码标准对比\label{sec:codec-comparison}}
 
-视频编码标准指的是规定了所用的视频编码技术集合、相对应的编码结果比特流及编解码规范的标准。视频编码标准主要由ITU与ISO/IEC两大组织制定。ITU制定的视频编码标准为H.26X系列，广泛应用于基于网络传输的视频通信，ISO/IEC的动态图像专家组（Moving Picture Experts Group, MPEG）制定的MPEG系列视频编码标准主要应用于视频存储等。两大组织的合作已经产生了H.264/AVC、H.265/HEVC，再下一代的标准H.266/VVC也正在开发中。近年来一些新的视频编码标准进入市场，有VP8、VP9、Daala、Thor等，以及由提出这些标准的公司组成的开放媒体联盟（AOMedia）开发的下一代视频编码标准：AV1。
+视频编码标准指的是规定了所用的视频编码技术集合、相对应的编码结果比特流及编解码规范的标准。视频编码标准主要由ITU与ISO/IEC两大组织制定。由ITU组织制定的视频编码标准称为H.26X系列，广泛应用于基于网络传输的视频通信，ISO/IEC的动态图像专家组（Moving Picture Experts Group, MPEG）制定的MPEG系列视频编码标准主要应用于视频存储等。两大组织的合作已经产生了H.264/AVC、H.265/HEVC，再下一代的标准H.266/VVC也正在开发中。近年来一些新的视频编码标准进入市场，有VP8、VP9、Daala、Thor等，以及由提出这些标准的公司组成的开放媒体联盟（AOMedia）开发的下一代视频编码标准：AV1。
 
 不同视频编码标准的差异在于其编码效率、解码效率、计算复杂度、及专利费用等。不同视频编码标准的性能对比在操作上是非常困难的\cite{laudeComprehensiveVideoCodec2019}：
 % 有点偏题啊
@@ -124,7 +124,7 @@ AV1使用了许多先进的编码工具，值得一提的是AV1更更强大的�
 	\label{fig:protocol-latency}
 \end{figure}
 
-流媒体协议与封装格式的选择往往是相互关联的，一种流媒体协议可能会要求使用某种封装格式。下文会对不同流媒体协议进行对比，结合AV1相关的封装格式的情况，选择合适的流媒体协议。
+流媒体协议与封装格式的选择往往是相互关联的，一种流媒体协议可能会要求使用特定的媒体封装格式。下文将对不同流媒体协议进行对比，结合AV1相关的封装格式的情况，选择合适的流媒体协议。
 
 \subsection{有状态流媒体协议}
 
@@ -140,7 +140,7 @@ AV1使用了许多先进的编码工具，值得一提的是AV1更更强大的�
     \item CDN厂商对RTMP的支持正在减弱，转而使用HLS和MPEG-DASH。
 \end{enumerate}
 
-\paragraph{RTSP} 实时流协议（Real Time Streaming Protocol, RTSP）由IETF标准化，在1998年以RFC2326\cite{schulzrinneRealTimeStreaming1998}的形式发布，RTSP2.0在2016年以RFC7826\cite{schulzrinneRealTimeStreamingProtocol2016}的形式发布，以替代RTSP1.0。RTSP是一种网络控制协议，专为娱乐和通信系统的使用，以控制流媒体服务器。流数据本身的传输不是RTSP的任务，大多数RTSP服务器使用实时传输协议（RTP\cite{schulzrinneRTPTransportProtocol2003}）和实时控制协议（RTCP）进行媒体流传递。RTSP对编码标准的支持性取决于音视频编码标准的RTP封装协议支持，而一般的音视频编码标准都有相对应的RTP封装协议支持。
+\paragraph{RTSP} 实时流协议（Real Time Streaming Protocol, RTSP）由IETF标准化，在1998年以RFC2326\cite{schulzrinneRealTimeStreaming1998}的形式发布，RTSP2.0在2016年以RFC7826\cite{schulzrinneRealTimeStreamingProtocol2016}的形式发布，以替代RTSP1.0。RTSP是一种网络控制协议，设计为通信系统的使用，用于控制流媒体服务器。流数据本身的传输不是RTSP的任务，大多数RTSP服务器使用实时传输协议（RTP\cite{schulzrinneRTPTransportProtocol2003}）进行数据封装、实时控制协议（RTCP）用于控制信息传输，组合使用RTP与RTCP进行媒体流传递。RTSP对编码标准的支持性取决于音视频编码标准的RTP封装协议支持，而一般的音视频编码标准都有相对应的RTP封装协议支持。
 
 RTSP一般用于IP摄像头，也可以用于流媒体直播，其一大优势是延迟较小。RTSP的一大缺点是设备支持性差，在Android和iOS设备上没有开箱即用的RTSP兼容播放器，RTSP在web端的支持性也不好。
 
@@ -155,9 +155,9 @@ RTSP一般用于IP摄像头，也可以用于流媒体直播，其一大优势�
 \paragraph{HLS} HTTP实时流媒体协议（HTTP Live Streaming）是Apple开发并于2009年发布的基于HTTP的自适应比特率流通信协议，并由IETF标准化为RFC8216\cite{pantosHTTPLiveStreaming2017}。该协议的支持在媒体播放器，Web浏览器，移动设备和流媒体服务器中得到了广泛的应用。HLS的延迟一般在十秒级。iOS设备只能使用HLS协议。通过使用LHLS可以提供更低的延迟，主要优化了切片策略、播放列表策略等实现。
 
 %TODO \cite dash? iso/iec的
-\paragraph{MPEG-DASH} Dynamic Adaptive Streaming over HTTP（MPEG-DASH）是第一个国际标准的基于HTTP的自适应比特率流解决方案。与类似但更为专有的解决方案（例如Microsoft的Smooth Streaming或Adobe的HDS）相比，对自适应流解决方案进行标准化意味着要向市场提供该解决方案可用于通用部署的信心。与HDS或MSS不同，DASH与编解码器无关，这意味着它可以使用以任何编码格式编码的内容，例如H.265，H.264，VP9等，当然也可以使用AV1编码格式的内容。
+\paragraph{MPEG-DASH} Dynamic Adaptive Streaming over HTTP（MPEG-DASH）是第一个国际标准的基于HTTP的自适应比特率流解决方案。与类似但更为专有的解决方案（例如Microsoft的Smooth Streaming或Adobe的HDS）相比，对自适应流解决方案进行标准化意味着要向市场提供该解决方案可用于通用部署的信心。与HDS或MSS不同，DASH标准与编解码器无关，这意味着DASH可以使用以任何编码格式编码的内容，例如H.264，H.265，VP9等，当然也可以使用AV1编码格式的内容。
 
-\paragraph{CMAF} Common Media Application Format（CMAF）是一个标准化的容器，它的提出是为了解决流媒体行业中繁多的容器格式带来的问题，创建标准化的传输容器，以避免视频流工作流程中增加的成本与复杂性。。 随着流媒体协议的不同，文件容器也随之不同。HLS指定使用.ts格式Version7及以上可以使用fmp4格式，而DASH几乎统一使用基于ISOBMFF的.mp4容器。任何想要在Apple设备和Android设备上都吸引用户的内容分发者，必须对相同的音频和视频数据进行两次编码和存储，并且，相同内容、不同格式之间可能发生竞争，造成资源的浪费。
+\paragraph{CMAF} Common Media Application Format（CMAF）是一个标准化的容器，它的提出是为了解决流媒体行业中繁多的容器格式带来的问题，创建标准化的传输容器，以减少视频流工作流程中增加的成本与复杂性。。 随着流媒体协议的不同，文件容器也随之不同。HLS指定使用.ts格式Version7及以上可以使用fmp4格式，而DASH几乎统一使用基于ISOBMFF的.mp4容器。任何想要在Apple设备和Android设备上都吸引用户的内容分发者，必须对相同的音频和视频数据进行两次编码和存储，并且，相同内容、不同格式之间可能发生竞争，造成资源的浪费。
 
 CMAF寻求的不仅仅是减少复杂性，除此以外，通过分块编码和分块传输编码，CMAF可以改善延迟，这将补充基于HTTP的自适应流媒体协议在实时交付上的能力，CMAF可以提供低于3秒的延迟。
 

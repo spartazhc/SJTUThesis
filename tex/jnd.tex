@@ -282,7 +282,7 @@
 	\subsection{实验测试质量指标}
 
 	\paragraph{PSNR}
-	峰值信噪比（Peak Signal to Noise Ratio, PSNR）表示信号的最大可能功率与影响信号表示保真度的破坏噪声的功率之间的比率。由于许多信号具有非常宽的动态范围，因此PSNR通常用对数分贝标度表示。PSNR是最常用的图像、视频客观质量评价指标，但是PSNR算法逐像素比较参考视频和失真视频，研究\cite{huynh-thuAccuracyPSNRPredicting2012}表明，由于失真的可见性在某种程度上取决于视频内容，因此PSNR无法如实表示人类对视觉失真的感知，尽管如此，PSNR仍是编解码器比较的事实上标准。
+	峰值信噪比（Peak Signal to Noise Ratio, PSNR）表示信号的最大可能功率与影响信号保真度的噪声功率之间的比率。因为许多信号具有非常宽的动态范围，PSNR通常用对数分贝标度表示。PSNR是最常用的图像、视频客观质量评价指标，但是PSNR算法逐像素比较参考视频和失真视频，研究\cite{huynh-thuAccuracyPSNRPredicting2012}表明，由于失真的可见性在某种程度上取决于视频内容，因此PSNR无法如实表示人类对视觉失真的感知，尽管如此，PSNR仍是编解码器比较的事实上标准。
 
 	PSNR通过均方误差（mean square error, MSE）定义，给定原始$m\times n$图像$I$与其失真图像$K$，MSE定义为：
 	\begin{equation}
