@@ -1,6 +1,9 @@
 \chapter{系统总体评测}
-为了评估对SVT-AV1编码器以及直播系统进行的优化，在本章将对前述章节所提的优化方案综合运用，测试在延迟、编码性能上的结果。
+为了评估对SVT-AV1编码器以及直播系统进行的优化，在本章将对前述章节所提的优化方案综合运用，测试在延迟、编码性能上的结果，以及将优化后的SVT-AV1编码器用于所搭建直播系统原型的转码延迟测量分析。
 
+%真实网络测试复杂且没必要，转码延迟和这个没关系
+考虑到真实网络场景复杂多变，具有不确定性，测试在局域网下完成，协议的传输延迟相比实际生产环境更小且更稳定，实验具有可重复性。并且，转码产生的延迟与系统延迟可解耦，转码延迟在不同网络环境下具有普适性，因此在局域网下测得的转码延迟可以代表在真实网络条件下测得的转码延迟。
+% TODO 说清楚协议和延时的问题，加好限定条件，说清楚对比的基础。加两张图，参考的copy和优化后的图（优化前？）延迟调优可以考虑写相对值
 \section{对SVT-AV1编码器的优化总测试}
 	对SVT-AV1编码器面向编码延迟的优化包括以下几个方面：
 	\begin{enumerate}[label=\arabic*)]
@@ -13,7 +16,8 @@
 	对SVT-AV1编码器的优化总测试在转码服务器上完成，测试环境与前述表\ref{tab:os-8280}与表\ref{tab:svt-lat}一致。以SVT-AV1普通低延迟配置：\texttt{--preset 8 --lookahead 0 --pred-struct 0}作为参考。
 
 	测试结果如表\ref{tab:svt-final-test}所示，在所有十个序列上，在延迟方面有超过50\%的降低，在编码性能上存在3\%左右的损失，BD-Rate-VMAF相比BD-Rate-PSNR损失更低，说明优化算法一定程度上考虑了人眼视觉特性。
-	\begin{table}[!hpt]
+
+	\begin{table}[htbp]
 		\renewcommand{\arraystretch}{0.9}
 		\caption{应用多种优化方式对SVT-AV1编码器的延迟（ms）优化结果}
 		\label{tab:svt-final-test}
@@ -67,24 +71,57 @@
 		\end{tabular}
 	\end{table}
 
-\section{系统延迟总体测试}
-	在局域网内对所搭建的低延迟直播系统进行测试，测试方法为在主播端编码前与客户端解码后打时间戳，对相应帧对比计算。与端到端的延迟相比，所测得的系统延迟缺少图像采集与解码后播放的延迟。测试结果如表\ref{tab:sys-lat}所示，其中，转码服务器\texttt{copy}表示不进行转码，x265的配置为\texttt{-preset ultrafast -tune zerolatency}。%编码延迟极低但画面质量较差。
-  \begin{table}[H]
-		\caption{系统总体延迟测试}
+\section{系统转码延迟测试}
+	在局域网内对所搭建的低延迟直播系统进行测试，测试方法为在主播端编码前与客户端解码后打时间戳，对相应帧的时间戳对比计算。如图\ref{fig:av1-sys-svt}，所测延迟为图中从$L_{x264}$到$L_{decode}$以及二者之间的所有延迟的和。本文所搭建的直播系统为验证性系统，重点在于对SVT-AV1编码器的延迟优化，搭建直播系统原型可以为实际转码服务提供更真实的测试环境。以下将测量直播系统因为加入SVT-AV1编码器产生的实际转码延迟。%为与端到端的延迟相比，所测得的系统延迟缺少图像采集与解码后播放的延迟。测试结果如表\ref{tab:sys-lat}所示，其中，转码服务器\texttt{copy}表示不进行转码，%x265的配置为\texttt{-preset ultrafast -tune zerolatency}。%编码延迟极低但画面质量较差。
+
+  \begin{figure}[htbp]
+  	\begin{minipage}{0.495\textwidth}
+	  	\centering
+	  	\includegraphics[width=\textwidth]{av1-sys-copy.pdf}
+	  	\caption{转码服务器\texttt{copy}直通延迟分析}
+	  	\label{fig:av1-sys-copy}
+  	\end{minipage} \hfill
+		\begin{minipage}{0.495\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{av1-sys-svt.pdf}
+			\caption{转码服务器使用SVT-AV1延迟分析}
+			\label{fig:av1-sys-svt}
+		\end{minipage}
+	\end{figure}
+
+  如图\ref{fig:av1-sys-copy}，以转码服务器使用\texttt{-codec copy}参数作为参考情况，参考情况下不进行转码，转码服务器输入的H.264码流通过转封装后发往客户端，以参考情况下的延迟作为参考值$L_{ref}$，表示系统中由于主播端H.264编码、两段协议传输、解封装，以及播放器端的缓冲区等因素造成的延迟。
+
+  图\ref{fig:av1-sys-svt}表示了在转码服务器加入SVT-AV1进行AV1转码。与参考情况相比，增加了SVT-AV1的转码延迟、AV1的RTP封装延迟，以及AV1相比H.264的解码延迟。将使用SVT-AV1进行转码测得的系统延迟$L_{sys}$减去H.264直通的延迟参考值$L_{ref}$，所得的延迟差作为转码延迟指标$L_{transcode}$：
+
+  \begin{equation}
+  	L_{transcode} = L_{sys} - L_{ref}.
+  \end{equation}
+
+  \begin{table}[htbp]
+		\caption{局域网下直播系统原型SVT-AV1转码延迟测试}
 		\label{tab:sys-lat}
 		\centering
-		\begin{tabular}{cccc}
+		\begin{tabular}{ccc}
 			\toprule
-			 转码编码器  & 编码器预启动 & 编码器调优 & 系统延迟（ms） \\ \midrule
-			 copy   &   /    &   /   &   610    \\
-			 x265   &   /    &   /   &   1210   \\
-			SVT-AV1 &   否    &   否   &   9560   \\
-			SVT-AV1 &   是    &   否   &   3650   \\
-			SVT-AV1 &   否    &   是   &   8160   \\
-			SVT-AV1 &   是    &   是   &   1300   \\ \bottomrule
-		\end{tabular}
+			 编码器调优  & $L_{transcode}$(ms) & $L_{transcode}/L_{sys}$ \\ \midrule
+			 默认配置   &        3000         &         81.7\%          \\
+			普通低延迟配置 &         770         &         53.5\%          \\
+			优化低延迟配置 &         340         &         33.7\%          \\ \bottomrule
+		\end{tabular}\\ \raggedright \vspace{8pt} \qquad \qquad \qquad \qquad
+	\small 注：转码服务器\texttt{copy}直通的系统延迟$L_{ref}=670$ms。
 	\end{table}
 
-	测试结果表明，前述对直播系统的延迟优化以及对SVT-AV1编码器的多方面优化能够有效降低系统延迟。SVT-AV1编码器的预启动对延迟有较大帮助，相比未预启动可减少6秒多的延迟。转码编码器使用copy的延迟情况可以表现由于主播端编码上传的延迟以及传输协议产生延迟。引入x265转码作为参考，表明由于转码引起的一些缓冲区延迟对系统延迟的影响。最终的优化结果在使用SVT-AV1做转码时可以达到1300ms的系统延迟
+  测试结果表明，SVT-AV1使用低延迟配置可以有效降低编码延迟，而利用前文对SVT-AV1编码器的调度优化与算法优化，可以在其普通低延迟配置的基础上再将转码延迟降低56\%，延迟降低百分比与表\ref{tab:svt-final-test}单独对编码器的测试结果一致。所搭建的直播系统原型在局域网环境下的系统延迟约为1秒，SVT-AV1转码延迟在340ms左右。
+
+  对于测试结果有以下说明：
+  \begin{enumerate}[label=\arabic*)]
+  	\item 测试在局域网下完成，协议传输的延迟相对实际生产环境更小更稳定。但特别分析的转码延迟部分在不同网络环境下具有普适性。
+  	\item 在直播系统测试中的转码延迟要高于表\ref{tab:svt-final-test}单独对编码器的测试结果，是因为单独对编码器测试时，输入视频帧的时间点绝对稳定，但在实际系统中，由于协议传输等因素，视频帧输入编码器的时间点有存在抖动。由于编码器内部的参考帧依赖关系，上述抖动在编码器内部可能累积增大。
+  	\item 转码服务器\texttt{copy}直通的系统延迟为670ms，构成延迟主要部分的有x264编码延迟、协议传输的延迟，还有影响较大的是在\texttt{ffplay}中的播放缓冲区导致延迟。
+  	\item 所测普通低延迟配置指的是使用\texttt{--preset 8 --lookahead 0 --pred-struct 0}的配置，最快预设、无lookahead、Low Delay P预测结构，未经本文所提优化方式优化。
+  \end{enumerate}
+
 \section{本章小结}
-在这一章中，对所构建的AV1低延迟直播系统进行了延迟与编码效率上的评测。测试结果表明，对SVT-AV1的优化对比其普通的低延迟配置，平均有超过50\%的延迟降低，编码性能下降在3\%左右，其中BD-Rate-VMAF相比BD-Rate-PSNR损失更低。在整个直播系统中，应用系统优化与优化后的SVT-AV1编码器，在局域网内的系统延迟降低至1300ms。
+在这一章中，对所构建的AV1低延迟直播系统进行了延迟与编码效率上的评测。测试结果表明，对SVT-AV1的优化对比其普通的低延迟配置，平均有超过50\%的延迟降低，编码性能下降在3\%左右，其中BD-Rate-VMAF相比BD-Rate-PSNR损失更低。
+
+将SVT-AV1编码器应用在直播系统的转码环节中，对SVT-AV1的优化低延迟配置可以有效降低转码延迟。对比SVT-AV1的普通低延迟配置，应用本文优化后的SVT-AV1编码器可以在其基础上再降低56\%的转码延迟，在局域网内的系统延迟降低至1秒。
