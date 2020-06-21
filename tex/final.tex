@@ -65,7 +65,7 @@
 			& 31 & 476 & 202 & -57.56 \%&  & \\ \cline{2-5}
 			& 39 & 289 & 156 & -46.02 \%&  & \\ \cline{2-5}
 			& 47 & 232 & 117 & -49.57 \%&  & \\ \hline
-			\multicolumn{2}{|c|}{平均值} & 403 & 183 & -53.27\% & +3.44\% & +2.92\%
+			\multicolumn{2}{|c|}{平均值} & 317 & 148 & -53.27\% & +3.44\% & +2.92\%
 
 			\\\hline
 		\end{tabular}
@@ -125,3 +125,100 @@
 在这一章中，对所构建的AV1低延迟直播系统进行了延迟与编码效率上的评测。测试结果表明，对SVT-AV1的优化对比其普通的低延迟配置，平均有超过50\%的延迟降低，编码性能下降在3\%左右，其中BD-Rate-VMAF相比BD-Rate-PSNR损失更低。
 
 将SVT-AV1编码器应用在直播系统的转码环节中，对SVT-AV1的优化低延迟配置可以有效降低转码延迟。对比SVT-AV1的普通低延迟配置，应用本文优化后的SVT-AV1编码器可以在其基础上再降低56\%的转码延迟，在局域网内的系统延迟降低至1秒。
+
+% for ppt
+%\begin{table}[!hpt]
+%	\renewcommand{\arraystretch}{0.9}
+%	\caption{JND快速编码测试结果Low Delay P}
+%	\label{tab:tmp1}
+%	\centering
+%	\begin{tabular}{cccc} \toprule
+%		序列     & $\Delta$T &  \makecell{BD-Rate\\(PSNR)} & \makecell{BD-Rate\\(VMAF)}\\ \midrule
+%
+%		CSGO & -24.44\% & +3.12\% & +2.41\% \\
+%		DOTA2 & -15.25\% & +2.74\% & +2.40\% \\
+%		EuroTruckSim2 & -8.22\% & +2.34\% & +2.28\% \\
+%		FALLOUT4 & -8.61\% & +2.03\% & +2.04\% \\
+%		GTAV & -10.09\% & +2.09\% & +2.07\% \\
+%		HEARTHSTONE & -10.29\% & +1.81\% & +1.88\% \\
+%		MINECRAFT & -6.82\% & +1.70\% & +1.60\% \\
+%		RUST & -17.91\% & +1.86\% & +1.72\% \\
+%		STARCRAFT & -9.41\% & +1.85\% & +1.17\% \\
+%		WITCHER3 & -19.55\% & +2.04\% & +1.31\% \\
+%		平均值 & -13.06\% & +3.82\% & +2.59\%
+%
+%		\\ \bottomrule
+%	\end{tabular}
+%\end{table}
+%
+%\begin{table}[!hpt]
+%	\renewcommand{\arraystretch}{0.9}
+%	\caption{JND快速编码测试结果All Intra}
+%	\label{tab:tmp2}
+%	\centering
+%	\begin{tabular}{cccc} \toprule
+%		序列     & $\Delta$T &  \makecell{BD-Rate\\(PSNR)} & \makecell{BD-Rate\\(VMAF)}\\ \midrule
+%
+%		CSGO & -28.82\% & +3.88\% & +4.53\% \\
+%		DOTA2 & -17.30\% & +2.67\% & +2.97\% \\
+%		EuroTruckSim2 & -12.48\% & +2.25\% & +1.16\% \\
+%		FALLOUT4 & -12.50\% & +1.92\% & +1.12\% \\
+%		GTAV & -12.83\% & +1.64\% & +1.03\% \\
+%		HEARTHSTONE & -16.14\% & +1.42\% & +0.91\% \\
+%		MINECRAFT & -8.43\% & +1.37\% & +0.73\% \\
+%		RUST & -24.26\% & +1.41\% & +0.87\% \\
+%		STARCRAFT & -13.21\% & +1.50\% & +1.97\% \\
+%		WITCHER3 & -22.89\% & +1.63\% & +2.14\% \\
+%		平均值 & -16.89\% & +2.82\% & +3.63\%
+%
+%		\\ \bottomrule
+%	\end{tabular}
+%\end{table}
+%
+%\begin{table}[!hpt]
+%	\renewcommand{\arraystretch}{0.9}
+%	\caption{调整md-stage进一步优化JND快速编码测试结果All Intra}
+%	\label{tab:tmp3}
+%	\centering
+%	\begin{tabular}{cccc} \toprule
+%		序列     & $\Delta$T &  \makecell{BD-Rate\\(PSNR)} & \makecell{BD-Rate\\(VMAF)}\\ \midrule
+%
+%		CSGO & -45.21\% & +4.78\% & +5.19\% \\
+%		DOTA2 & -33.84\% & +3.33\% & +3.49\% \\
+%		EuroTruckSim2 & -31.61\% & +2.82\% & +1.48\% \\
+%		FALLOUT4 & -26.34\% & +2.50\% & +1.50\% \\
+%		GTAV & -29.57\% & +2.21\% & +1.46\% \\
+%		HEARTHSTONE & -30.20\% & +1.97\% & +1.33\% \\
+%		MINECRAFT & -25.13\% & +1.86\% & +1.20\% \\
+%		RUST & -37.19\% & +1.88\% & +1.30\% \\
+%		STARCRAFT & -30.03\% & +1.95\% & +1.78\% \\
+%		WITCHER3 & -39.00\% & +2.05\% & +2.02\% \\
+%		平均值 & -32.81\% & +2.97\% & +4.24\%
+%
+%	\\ \bottomrule
+%	\end{tabular}
+%\end{table}
+%
+%\begin{table}[!hpt]
+%	\renewcommand{\arraystretch}{0.9}
+%	\caption{应用多种优化方式对SVT-AV1编码器的延迟（ms）优化结果}
+%	\label{tab:tmp4}
+%	\centering
+%	\begin{tabular}{cccccc} \toprule
+%		序列    & 优化前延迟 &优化后延迟 & $\Delta$latency& \makecell{BD-Rate\\(PSNR)} & \makecell{BD-Rate\\(VMAF)}\\ \midrule
+%
+%		CSGO & 163 & 83 & -49.34\% & +5.78\% & +5.94\% \\
+%		DOTA2 & 257 & 129 & -48.64\% & +3.78\% & +3.14\% \\
+%		EuroTruckSim2 & 384 & 166 & -54.25\% & +2.42\% & +2.98\% \\
+%		FALLOUT4 & 378 & 174 & -53.67\% & +2.19\% & +3.06\% \\
+%		GTAV & 256 & 136 & -45.64\% & +3.45\% & +3.54\% \\
+%		HEARTHSTONE & 181 & 84 & -53.66\% & +2.83\% & +3.57\% \\
+%		MINECRAFT & 477 & 208 & -54.66\% & +1.80\% & +0.38\% \\
+%		RUST & 356 & 155 & -54.77\% & +4.11\% & +5.32\% \\
+%		STARCRAFT & 319 & 164 & -47.98\% & +3.14\% & -2.78\% \\
+%		WITCHER3 & 403 & 183 & -52.90\% & +4.88\% & +4.09\% \\
+%		平均值 & 317 & 148 & -53.27\% & +3.44\% & +2.92\%
+%
+%		\\ \bottomrule
+%	\end{tabular}
+%\end{table}

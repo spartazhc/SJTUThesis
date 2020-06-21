@@ -32,7 +32,7 @@
 		\qquad\qquad\texttt{Y}: 若最后一个OBU元素是一个会延续到下一个packet的片段，设1，否则设0；\\
 		\qquad\qquad\texttt{W}: 描述当前packet中的OBU元素数量；\\
 		\qquad\qquad\texttt{N}: 若当前packet是视频序列首个packet，设1，否则设0。\\
-		\caption{AV1聚合头部}
+		\caption{AV1聚合头部\cite{RTPPayloadFormat}}
 		\label{fig:av1rtp-aggr}
 	\end{figure}
 \section{AV1低延迟直播系统分析与优化}
@@ -301,7 +301,7 @@
 	\end{tabular}
 \end{table}
 
-图\ref{fig:cpu-ana}展示了SVT-AV1编码器的各编码过程所用的CPU时间占比，测试发现，SVT-AV1编码器的CPU密集型任务主要分布在ENCDEC、ME、PD三个编码过程中，其中ENCDEC过程所用的CPU时间占总CPU时间的55\%，ME过程所用的CPU时间占总CPU时间的34\%。
+图\ref{fig:cpu-ana}展示了SVT-AV1编码器的各编码过程所用的CPU时间占比，测试发现，SVT-AV1编码器的CPU密集型任务主要分布在ENCDEC、ME两个编码过程中，其中ENCDEC过程所用的CPU时间占总CPU时间的62\%，ME过程所用的CPU时间占总CPU时间的33\%。
 
 \begin{figure}[htbp]
 		\centering
@@ -337,15 +337,15 @@ SVT-AV1本身不是为编码低延迟视频流而设计，因此在一些细节�
 
   这样设计的机制在普通视频流编码中是合理的。但是对于我们要求的低延迟编码，EOS机制意味着额外的一个帧输入间隔延迟，对于30fps的流，这个延迟为33ms，相对较大。对于低延迟实时流媒体编码我们可以假设输入的视频流的总帧数是未知的，RESOURCE过程在收到一帧图像后立刻发送给下一级的PA过程，在流需要停止的时候才发送EOS包。
 
-\subsection{PD过程的滑动窗口优化}
-	在上一章节的分析中提到PD过程中因为滑动窗口机制产生的PD\_sche延迟，可以通过关闭场景变化检测将该滑动窗口的宽度设定为0，从而消除这部分的延迟。图\ref{fig:lat-ana-pd}展示了优化后的延迟测试结果，与优化前的图\ref{fig:lat-ana}相比，占总延迟高达40\%的PD\_sche延迟完全消除，平均编码延迟从优化前$\sim 420$ms降低至$\sim 240$ms。
-
 	\begin{figure}[htbp]
 		\centering
 		\includegraphics[width=0.75\textwidth]{latency_analysis_pd.png}
 		\caption{优化PD\_sche后SVT-AV1编码器编码延迟在各编码过程分布图}
 		\label{fig:lat-ana-pd}
 	\end{figure}
+
+\subsection{PD过程的滑动窗口优化}
+	在上一章节的分析中提到PD过程中因为滑动窗口机制产生的PD\_sche延迟，可以通过关闭场景变化检测将该滑动窗口的宽度设定为0，从而消除这部分的延迟。图\ref{fig:lat-ana-pd}展示了优化后的延迟测试结果，与优化前的图\ref{fig:lat-ana}相比，占总延迟高达40\%的PD\_sche延迟完全消除，平均编码延迟从优化前$\sim 420$ms降低至$\sim 240$ms。
 
 \subsection{分Tile编码优化}
 	在AV1视频编码中，Tile\cite{a.fuldsethfuldsethTiles}表示尽管可以独立编码和解码的矩形区域。由于Tile划分，会降低像素数据中存在的相关性，降低了编码效率；但是，Tile的划分增加了编码器的并行效率，可有效降低编码延迟\cite{misraOverviewTilesHEVC2013}。

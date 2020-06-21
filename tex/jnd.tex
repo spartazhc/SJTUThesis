@@ -73,6 +73,7 @@
     \hspace{2cm}
     \subcaptionbox{$8\times 8$背景亮度卷积核\label{fig:8x8luma-kernel}}[0.3\textwidth]{
 			\begin{tabular}{|c|c|c|c|c|c|c|c|}	\hline
+				1& 1& 1& 2& 2& 1& 1& 1 \\ \hline
 				1& 2& 2& 3& 3& 2& 2& 1 \\ \hline
 				1& 2& 0& 3& 3& 0& 2& 1 \\ \hline
 				1& 3& 3& 5& 5& 3& 3& 1 \\ \hline
@@ -102,7 +103,7 @@
 
 
 	\subsection{块级JND模型的提出\label{sec:blk-based-jnd}}
-	原始的JND感知阈值模型是像素级模型，处理一个视频帧时，需要对其中的每个像素位置进行计算，运算量较大，严重影响算法的延迟，为了将JND感知阈值模型用在实时的低延迟编码中，需要对模型进行简化。结合后续将JND感知阈值用于分区决策中提前终止算法，将原始的像素级JND感知阈值模型简化为$8\times 8$块级模型，最小处理单位化为$8\times 8$块。式\ref{equ:la}中的亮度均值计算使用的卷积核替换为图\ref{fig:8x8luma-kernel}所示的$8\times 8$卷集合，式\ref{equ:cm}中使用的亮度标准差替换为$8\times 8$块内的亮度标准差。由此计算块级的JND感知阈值$\mathrm{JND_{8x8}}(i, j)$。
+	原始的JND感知阈值模型是像素级模型，处理一个视频帧时，需要对其中的每个像素位置进行计算，运算量较大，严重影响算法的延迟，为了将JND感知阈值模型用在实时的低延迟编码中，需要对模型进行简化。结合后续将JND感知阈值用于分区决策中提前终止算法，将原始的像素级JND感知阈值模型简化为$8\times 8$块级模型，最小处理单位化为$8\times 8$块。式\ref{equ:la}中的亮度均值计算使用的卷积核替换为图\ref{fig:8x8luma-kernel}所示的$8\times 8$卷积核，式\ref{equ:cm}中使用的亮度标准差替换为$8\times 8$块内的亮度标准差。由此计算块级的JND感知阈值$\mathrm{JND_{8x8}}(i, j)$。
 
 	\begin{equation} \label{equ:jnd2}
 		\mathrm{JND_{8x8}}(m, n) = LA(m, n) + CM(m, n) - 0.3 \cdot \min \left\{LA(m, n) , CM(m, n)\right\},
